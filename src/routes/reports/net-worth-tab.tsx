@@ -61,7 +61,7 @@ export default function NetWorthTab() {
 
       {series.length >= 2 ? (
         <div className="rounded-xl bg-white p-2 pr-4 shadow-sm dark:bg-ink-800">
-          <NetWorthChart series={series} />
+          <NetWorthView series={series} />
         </div>
       ) : (
         <p className="rounded-xl bg-white p-4 text-sm text-ink-500 shadow-sm dark:bg-ink-800">
@@ -116,6 +116,87 @@ export default function NetWorthTab() {
       <Sheet open={addOpen} onOpenChange={setAddOpen} title="Add net worth entry">
         <AddEntryForm onClose={() => setAddOpen(false)} />
       </Sheet>
+    </div>
+  );
+}
+
+function NetWorthView({
+  series,
+}: {
+  series: ReturnType<typeof computeNetWorthSeries>;
+}) {
+  const [mode, setMode] = useState<'chart' | 'table'>('chart');
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-end px-2 pt-1">
+        <div
+          role="tablist"
+          aria-label="Display mode"
+          className="inline-flex overflow-hidden rounded-lg border border-ink-200 text-[11px] font-medium dark:border-ink-700"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'chart'}
+            onClick={() => setMode('chart')}
+            className={cn(
+              'h-7 px-2',
+              mode === 'chart'
+                ? 'bg-brand-600 text-white'
+                : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-800',
+            )}
+          >
+            Chart
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === 'table'}
+            onClick={() => setMode('table')}
+            className={cn(
+              'h-7 px-2',
+              mode === 'table'
+                ? 'bg-brand-600 text-white'
+                : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-800',
+            )}
+          >
+            Table
+          </button>
+        </div>
+      </div>
+      {mode === 'chart' ? <NetWorthChart series={series} /> : <NetWorthTable series={series} />}
+    </div>
+  );
+}
+
+function NetWorthTable({
+  series,
+}: {
+  series: ReturnType<typeof computeNetWorthSeries>;
+}) {
+  return (
+    <div className="overflow-x-auto px-2 pb-3">
+      <table className="w-full text-xs">
+        <caption className="sr-only">Net worth history by month</caption>
+        <thead>
+          <tr className="text-left text-ink-500">
+            <th scope="col" className="py-2 pr-3 font-medium">Month</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">Assets</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">Debts</th>
+            <th scope="col" className="py-2 text-right font-medium">Net</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-ink-200 dark:divide-ink-700">
+          {series.map((p) => (
+            <tr key={p.label}>
+              <th scope="row" className="py-1.5 pr-3 font-normal">{p.label}</th>
+              <td className="py-1.5 pr-3 text-right tabular-nums">{formatMoney(p.assets)}</td>
+              <td className="py-1.5 pr-3 text-right tabular-nums">{formatMoney(p.debts)}</td>
+              <td className="py-1.5 text-right tabular-nums">{formatMoney(p.net)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

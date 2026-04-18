@@ -1,8 +1,9 @@
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { CreditCard, Landmark } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { addDays, endOfMonth, parseISO, startOfMonth } from 'date-fns';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { spring } from '@/styles/motion';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -43,6 +44,7 @@ const AccountSparkline = lazy(() =>
 
 export default function AccountRegister() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const account = useLiveQuery(
     () => (id ? db.accounts.get(id) : undefined),
     [id],
@@ -96,6 +98,53 @@ export default function AccountRegister() {
     [allTxns, selectedTxnId],
   );
 
+  const hotkeyOpts = { enableOnFormTags: false, preventDefault: true } as const;
+
+  useHotkeys(
+    'j',
+    () => {
+      if (!filtered || filtered.length === 0) return;
+      const ids = filtered.map((r) => r.txn.id);
+      const i = selectedTxnId ? ids.indexOf(selectedTxnId) : -1;
+      const next = ids[Math.min(ids.length - 1, i + 1)] ?? ids[0];
+      setSelectedTxnId(next);
+    },
+    hotkeyOpts,
+    [filtered, selectedTxnId],
+  );
+
+  useHotkeys(
+    'k',
+    () => {
+      if (!filtered || filtered.length === 0) return;
+      const ids = filtered.map((r) => r.txn.id);
+      const i = selectedTxnId ? ids.indexOf(selectedTxnId) : ids.length;
+      const prev = ids[Math.max(0, i - 1)] ?? ids[0];
+      setSelectedTxnId(prev);
+    },
+    hotkeyOpts,
+    [filtered, selectedTxnId],
+  );
+
+  useHotkeys(
+    'escape',
+    () => {
+      if (selectedTxnId) setSelectedTxnId(null);
+    },
+    hotkeyOpts,
+    [selectedTxnId],
+  );
+
+  useHotkeys(
+    'e',
+    () => {
+      if (!selectedTxnId) return;
+      navigate(`/transactions/${selectedTxnId}/edit`);
+    },
+    hotkeyOpts,
+    [selectedTxnId, navigate],
+  );
+
   const handleDelete = useCallback(
     async (t: Transaction) => {
       try {
@@ -123,6 +172,18 @@ export default function AccountRegister() {
       }
     },
     [selectedTxnId],
+  );
+
+  useHotkeys(
+    'delete, backspace',
+    () => {
+      if (!selectedTxnId) return;
+      const t = filtered?.find((r) => r.txn.id === selectedTxnId)?.txn;
+      if (!t) return;
+      void handleDelete(t);
+    },
+    hotkeyOpts,
+    [selectedTxnId, filtered, handleDelete],
   );
 
   if (!id) return <Navigate to="/accounts" replace />;

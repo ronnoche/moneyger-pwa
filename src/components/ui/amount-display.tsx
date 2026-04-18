@@ -50,6 +50,19 @@ interface Parts {
   decimal: string;
 }
 
+function spelledOut(value: number, currency: string): string {
+  const abs = Math.abs(value);
+  const formatted = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'name',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(abs);
+  if (value < 0) return `negative ${formatted}`;
+  return formatted;
+}
+
 function formatIntl(value: number, currency: string): Parts {
   const parts = new Intl.NumberFormat(undefined, {
     style: 'currency',
@@ -110,14 +123,7 @@ export function AmountDisplay({
 
   const parts = formatIntl(displayValue, currency);
 
-  const label =
-    ariaLabel ??
-    new Intl.NumberFormat(undefined, {
-      style: 'currency',
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+  const label = ariaLabel ?? spelledOut(value, currency);
 
   return (
     <span

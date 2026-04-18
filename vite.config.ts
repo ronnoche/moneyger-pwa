@@ -21,6 +21,8 @@ export default defineConfig({
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
+        lang: 'en',
+        categories: ['finance', 'productivity'],
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -37,6 +39,29 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
+          },
+        ],
+        shortcuts: [
+          {
+            name: 'New transaction',
+            short_name: 'New',
+            description: 'Log a new transaction',
+            url: '/transactions/new',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Move money',
+            short_name: 'Move',
+            description: 'Move money between categories',
+            url: '/budget',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
+          },
+          {
+            name: 'Transactions',
+            short_name: 'Txns',
+            description: 'View all transactions',
+            url: '/transactions',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }],
           },
         ],
       },

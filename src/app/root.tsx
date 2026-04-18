@@ -14,6 +14,9 @@ import { isOnboardingComplete } from '@/lib/onboarding';
 const PwaUpdate = lazy(() =>
   import('@/app/pwa-update').then((m) => ({ default: m.PwaUpdate })),
 );
+const InstallPrompt = lazy(() =>
+  import('@/app/install-prompt').then((m) => ({ default: m.InstallPrompt })),
+);
 
 export function RootLayout() {
   const location = useLocation();
@@ -78,6 +81,7 @@ export function RootLayout() {
       <ShortcutHelp open={helpOpen} onOpenChange={setHelpOpen} />
       <Suspense fallback={null}>
         <PwaUpdate />
+        <InstallPrompt />
       </Suspense>
     </div>
   );

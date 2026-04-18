@@ -5,9 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0f172a" />
+
+    <meta
+      name="theme-color"
+      content="#f8fafc"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0f172a"
+      media="(prefers-color-scheme: dark)"
+    />
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -16,6 +26,7 @@
       content="black-translucent"
     />
     <meta name="apple-mobile-web-app-title" content="Aspire" />
+    <meta name="application-name" content="Aspire Budget" />
     <link
       rel="apple-touch-icon"
       sizes="180x180"
@@ -23,6 +34,10 @@
     />
 
     <title>Aspire Budget</title>
+    <meta
+      name="description"
+      content="Zero-based envelope budgeting, offline-first."
+    />
     <script>
       (function () {
         try {
@@ -32,6 +47,12 @@
             ((pref === 'system' || !pref) &&
               window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+        try {
+          var key = 'aspire:visits';
+          var n = parseInt(localStorage.getItem(key) || '0', 10);
+          if (isNaN(n)) n = 0;
+          localStorage.setItem(key, String(n + 1));
         } catch (e) {}
       })();
     </script>
