@@ -2,11 +2,12 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { RootLayout } from './root';
 import Dashboard from '@/routes/dashboard';
 import TransactionsList from '@/routes/transactions/list';
-import MoveMoney from '@/routes/budget/move-money';
-import AccountsList from '@/routes/accounts/list';
-import Reports from '@/routes/reports/index';
-import Settings from '@/routes/settings';
-import Onboarding from '@/routes/onboarding';
+import TransactionNew from '@/routes/transactions/new';
+import TransactionEdit from '@/routes/transactions/edit';
+import More from '@/routes/more';
+import Settings from '@/routes/settings/index';
+import SettingsAppearance from '@/routes/settings/appearance';
+import SettingsData from '@/routes/settings/data';
 
 export const router = createBrowserRouter([
   {
@@ -14,11 +15,82 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'transactions', element: <TransactionsList /> },
-      { path: 'budget', element: <MoveMoney /> },
-      { path: 'accounts', element: <AccountsList /> },
-      { path: 'reports', element: <Reports /> },
+      { path: 'transactions/new', element: <TransactionNew /> },
+      { path: 'transactions/:id/edit', element: <TransactionEdit /> },
+      {
+        path: 'budget',
+        lazy: async () => {
+          const mod = await import('@/routes/budget/move-money');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'accounts',
+        lazy: async () => {
+          const mod = await import('@/routes/accounts/list');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'accounts/:id',
+        lazy: async () => {
+          const mod = await import('@/routes/accounts/register');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'reports',
+        lazy: async () => {
+          const mod = await import('@/routes/reports/index');
+          return { Component: mod.default };
+        },
+      },
+      { path: 'more', element: <More /> },
       { path: 'settings', element: <Settings /> },
-      { path: 'onboarding', element: <Onboarding /> },
+      {
+        path: 'settings/groups',
+        lazy: async () => {
+          const mod = await import('@/routes/settings/groups');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'settings/categories',
+        lazy: async () => {
+          const mod = await import('@/routes/settings/categories');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'settings/accounts',
+        lazy: async () => {
+          const mod = await import('@/routes/settings/accounts');
+          return { Component: mod.default };
+        },
+      },
+      { path: 'settings/appearance', element: <SettingsAppearance /> },
+      { path: 'settings/data', element: <SettingsData /> },
+      {
+        path: 'onboarding',
+        lazy: async () => {
+          const mod = await import('@/routes/onboarding');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'dev/tokens',
+        lazy: async () => {
+          const mod = await import('@/routes/dev/tokens');
+          return { Component: mod.default };
+        },
+      },
+      {
+        path: 'dev/components',
+        lazy: async () => {
+          const mod = await import('@/routes/dev/components');
+          return { Component: mod.default };
+        },
+      },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

@@ -1,46 +1,103 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-  --color-ink-50: #f8fafc;
-  --color-ink-100: #f1f5f9;
-  --color-ink-200: #e2e8f0;
-  --color-ink-400: #94a3b8;
-  --color-ink-500: #64748b;
-  --color-ink-700: #334155;
-  --color-ink-800: #1e293b;
-  --color-ink-900: #0f172a;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
+  --color-brand-50:  oklch(0.97 0.025 165);
+  --color-brand-100: oklch(0.94 0.05 165);
+  --color-brand-500: oklch(0.66 0.14 165);
+  --color-brand-600: oklch(0.58 0.14 165);
+  --color-brand-700: oklch(0.50 0.13 165);
+
+  --color-ink-50:  oklch(0.99 0.003 250);
+  --color-ink-100: oklch(0.97 0.004 250);
+  --color-ink-200: oklch(0.92 0.005 250);
+  --color-ink-300: oklch(0.86 0.006 250);
+  --color-ink-400: oklch(0.60 0.010 250);
+  --color-ink-500: oklch(0.55 0.010 250);
+  --color-ink-700: oklch(0.35 0.012 250);
+  --color-ink-800: oklch(0.24 0.010 250);
+  --color-ink-900: oklch(0.16 0.008 250);
+
+  --color-danger-500: oklch(0.68 0.20 25);
+  --color-danger-600: oklch(0.60 0.21 25);
+  --color-danger-bg:  oklch(0.96 0.04 25);
+
+  --color-positive:    oklch(0.58 0.14 165);
+  --color-positive-bg: oklch(0.96 0.04 165);
+  --color-warning:     oklch(0.78 0.14 75);
+  --color-warning-bg:  oklch(0.96 0.05 75);
+  --color-info:        oklch(0.65 0.13 245);
+
+  --color-bg:            oklch(0.99 0.003 250);
+  --color-surface:       #ffffff;
+  --color-surface-2:     oklch(0.97 0.004 250);
+  --color-border:        oklch(0.92 0.005 250);
+  --color-border-strong: oklch(0.86 0.006 250);
+  --color-fg:            oklch(0.16 0.008 250);
+  --color-fg-muted:      oklch(0.55 0.010 250);
+  --color-fg-subtle:     oklch(0.60 0.010 250);
+
+  --color-chart-1: oklch(0.58 0.14 165);
+  --color-chart-2: oklch(0.70 0.15 75);
+  --color-chart-3: oklch(0.62 0.20 25);
+  --color-chart-4: oklch(0.55 0.18 295);
+  --color-chart-5: oklch(0.58 0.10 245);
+  --color-chart-6: oklch(0.72 0.10 165);
 
   --font-sans:
-    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui,
-    sans-serif;
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter Variable',
+    system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+
+  --shadow-xs:
+    0 1px 2px 0 oklch(0.16 0.008 250 / 0.04);
+  --shadow-sm:
+    0 1px 3px 0 oklch(0.16 0.008 250 / 0.06),
+    0 1px 2px -1px oklch(0.16 0.008 250 / 0.04);
+  --shadow-md:
+    0 4px 8px -2px oklch(0.16 0.008 250 / 0.08),
+    0 2px 4px -2px oklch(0.16 0.008 250 / 0.04);
+  --shadow-lg:
+    0 12px 24px -6px oklch(0.16 0.008 250 / 0.10),
+    0 4px 8px -4px oklch(0.16 0.008 250 / 0.06);
+  --shadow-fab:
+    0 8px 24px -4px oklch(0.58 0.14 165 / 0.35),
+    0 4px 8px -4px oklch(0.58 0.14 165 / 0.25);
+  --shadow-sheet:
+    0 -8px 32px -8px oklch(0.16 0.008 250 / 0.12);
+}
+
+.dark {
+  --color-bg:            oklch(0.16 0.008 250);
+  --color-surface:       oklch(0.24 0.010 250);
+  --color-surface-2:     oklch(0.28 0.010 250);
+  --color-border:        oklch(1 0 0 / 0.10);
+  --color-border-strong: oklch(1 0 0 / 0.16);
+  --color-fg:            oklch(0.95 0.005 250);
+  --color-fg-muted:      oklch(0.66 0.010 250);
+  --color-fg-subtle:     oklch(0.54 0.010 250);
+
+  --color-positive-bg:   oklch(0.30 0.06 165);
+  --color-danger-bg:     oklch(0.30 0.07 25);
+  --color-warning-bg:    oklch(0.32 0.08 75);
 }
 
 @layer base {
+  html {
+    font-feature-settings: 'cv11', 'ss01', 'ss03', 'tnum';
+  }
+
   html,
   body,
   #root {
-    height: 100%;
-    background: var(--color-ink-50);
-    color: var(--color-ink-900);
+    min-height: 100dvh;
+    background: var(--color-bg);
+    color: var(--color-fg);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    html,
-    body,
-    #root {
-      background: var(--color-ink-900);
-      color: var(--color-ink-50);
-    }
   }
 
   input,
@@ -52,6 +109,16 @@
 
   input[inputmode='decimal'] {
     font-variant-numeric: tabular-nums;
+  }
+
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -66,4 +133,43 @@
 }
 @utility safe-pr {
   padding-right: max(env(safe-area-inset-right), 1rem);
+}
+
+@utility text-amount {
+  font-size: 3.5rem;
+  line-height: 3.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+@keyframes aspire-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes aspire-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes aspire-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes aspire-slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@utility animate-fade-in {
+  animation: aspire-fade-in 180ms ease-out;
+}
+@utility animate-fade-out {
+  animation: aspire-fade-out 150ms ease-in;
+}
+@utility animate-slide-up {
+  animation: aspire-slide-up 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@utility animate-slide-down {
+  animation: aspire-slide-down 180ms cubic-bezier(0.32, 0.72, 0, 1);
 }

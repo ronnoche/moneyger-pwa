@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTransactions, useTransfers } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import { formatMoney } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { haptics } from '@/lib/haptics';
 
 export function AppHeader() {
   const txns = useTransactions();
@@ -12,6 +13,15 @@ export function AppHeader() {
     if (!txns || !tfrs) return null;
     return availableToBudget(txns, tfrs);
   }, [txns, tfrs]);
+
+  const prevAtb = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevAtb.current;
+    if (atb !== null && prev !== null && prev > 0 && atb === 0) {
+      haptics.confirm();
+    }
+    prevAtb.current = atb;
+  }, [atb]);
 
   return (
     <header className="safe-pt safe-pl safe-pr sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur dark:border-ink-800 dark:bg-ink-900/85">

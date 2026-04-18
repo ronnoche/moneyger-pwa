@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Aspire Budget',
@@ -42,6 +42,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        mode: 'development',
       },
       devOptions: {
         enabled: true,
@@ -52,6 +53,25 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('/recharts/') || id.includes('/victory-')) return 'recharts';
+          if (id.includes('/motion/') || id.includes('framer-motion')) return 'motion';
+          if (id.includes('/react-router/')) return 'router';
+          if (id.includes('/dexie')) return 'dexie';
+          if (id.includes('/@radix-ui/')) return 'radix';
+          if (id.includes('/react-hook-form/') || id.includes('/@hookform/') || id.includes('/zod/')) return 'forms';
+          if (id.includes('/cmdk/')) return 'cmdk';
+          if (id.includes('/sonner/')) return 'sonner';
+          if (id.includes('/@use-gesture/')) return 'gesture';
+          if (id.includes('/date-fns/')) return 'date-fns';
+        },
+      },
     },
   },
 });

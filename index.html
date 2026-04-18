@@ -23,6 +23,18 @@
     />
 
     <title>Aspire Budget</title>
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('aspire:theme');
+          var dark =
+            pref === 'dark' ||
+            ((pref === 'system' || !pref) &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

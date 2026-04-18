@@ -3,17 +3,17 @@ import {
   LayoutDashboard,
   ListOrdered,
   ArrowLeftRight,
-  Wallet,
   BarChart3,
+  Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const tabs = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/transactions', label: 'Transactions', icon: ListOrdered },
-  { to: '/budget', label: 'Budget', icon: ArrowLeftRight },
-  { to: '/accounts', label: 'Accounts', icon: Wallet },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/transactions', label: 'Transactions', icon: ListOrdered, end: false },
+  { to: '/budget', label: 'Budget', icon: ArrowLeftRight, end: false },
+  { to: '/reports', label: 'Reports', icon: BarChart3, end: false },
+  { to: '/more', label: 'More', icon: Menu, end: false },
 ] as const;
 
 export function TabBar() {
@@ -23,11 +23,11 @@ export function TabBar() {
       aria-label="Primary"
     >
       <ul className="mx-auto flex max-w-xl items-stretch justify-between px-2 pt-1">
-        {tabs.map(({ to, label, icon: Icon }) => (
+        {tabs.map(({ to, label, icon: Icon, end }) => (
           <li key={to} className="flex-1">
             <NavLink
               to={to}
-              end={to === '/'}
+              end={end}
               className={({ isActive }) =>
                 cn(
                   'flex h-14 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] font-medium',
