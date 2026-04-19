@@ -1,10 +1,17 @@
 export type CategoryType = 'expense' | 'sinking_fund';
 export type TxnStatus = 'cleared' | 'pending' | 'reconciled';
-export type GoalType =
+
+export type GoalCadence =
   | 'none'
   | 'monthly_funding'
   | 'target_balance'
-  | 'target_by_date';
+  | 'target_by_date'
+  | 'weekly'
+  | 'monthly'
+  | 'yearly'
+  | 'custom';
+
+export type GoalType = GoalCadence;
 
 export interface Group {
   id: string;
@@ -18,9 +25,11 @@ export interface Category {
   groupId: string;
   name: string;
   type: CategoryType;
-  goalType: GoalType;
+  goalType: GoalCadence;
   goalAmount: number;
   goalDueDate: string | null;
+  goalRecurring: boolean | null;
+  goalStartMonth: string | null;
   sortOrder: number;
   isArchived: boolean;
 }
@@ -82,4 +91,23 @@ export interface SyncLog {
   createdAt: string;
   syncedAt: string | null;
   error: string | null;
+}
+
+export interface AutoAssignHistoryEntry {
+  id: string;
+  appliedAt: string;
+  presetId: string;
+  scopeMonth: string;
+  totalAmount: number;
+  moveCount: number;
+  transferIds: string[];
+  scope: 'all' | 'selected';
+  scopedCategoryIds: string[] | null;
+  revertedAt: string | null;
+}
+
+export interface BudgetNote {
+  id: string;
+  content: string;
+  updatedAt: string;
 }

@@ -91,6 +91,13 @@ export const router = createBrowserRouter([
           return { Component: mod.default };
         },
       },
+      {
+        path: 'dev/auto-assign',
+        lazy: async () => {
+          const mod = await import('@/routes/dev/auto-assign');
+          return { Component: mod.default };
+        },
+      },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

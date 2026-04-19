@@ -159,6 +159,9 @@ export function goalProgress(
         perMonth,
       };
     }
+
+    default:
+      return null;
   }
 }
 

@@ -25,6 +25,8 @@ export async function createCategory(input: CategoryInput): Promise<Category> {
     goalType: input.goalType,
     goalAmount: input.goalAmount,
     goalDueDate: input.goalDueDate,
+    goalRecurring: null,
+    goalStartMonth: null,
     sortOrder: maxSort + 1,
     isArchived: false,
   };
