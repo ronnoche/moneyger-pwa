@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus } from 'lucide-react';
@@ -17,6 +17,7 @@ import {
   categoryBudgetedForMonth,
   goalProgress,
 } from '@/lib/budget-math';
+import { goalStatus, normalizeGoal } from '@/lib/goals';
 import { Sheet } from '@/components/ui/sheet';
 import { MonthNav } from '@/components/month-nav';
 import { AmountDisplay } from '@/components/ui/amount-display';
@@ -25,6 +26,13 @@ import { MonthSummary } from '@/components/dashboard/month-summary';
 import { CategoryRow } from '@/components/dashboard/category-row';
 import { Skeleton, SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ReadyToAssignPill } from '@/components/budget/ready-to-assign-pill';
+import {
+  FilterChips,
+  type BudgetFilterId,
+} from '@/components/budget/filter-chips';
+import { BudgetToolbar } from '@/components/budget/budget-toolbar';
+import { useBudgetViewMode } from '@/hooks/use-budget-view-mode';
 import { haptics } from '@/lib/haptics';
 import type { Category, Transaction, Transfer } from '@/db/schema';
 
@@ -43,8 +51,42 @@ export default function Dashboard() {
   const reduced = useReducedMotion();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMonth, setViewMonth] = useState<Date>(() => startOfMonth(new Date()));
+  const [filter, setFilter] = useState<BudgetFilterId>('all');
+  const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useBudgetViewMode();
 
   const loading = !groups || !categories || !txns || !tfrs;
+
+  const filterMatches = useMemo(() => {
+    if (!categories || !txns || !tfrs) return new Set<string>();
+    const ids = new Set<string>();
+    const q = search.trim().toLowerCase();
+    for (const cat of categories) {
+      if (cat.isArchived) continue;
+      if (q && !cat.name.toLowerCase().includes(q)) continue;
+      const avail = categoryAvailable(cat.id, txns, tfrs);
+      const budgeted = categoryBudgetedForMonth(cat.id, viewMonth, tfrs);
+      const goal = normalizeGoal(cat);
+      const status = goalStatus(goal, avail, budgeted, viewMonth);
+
+      let pass: boolean;
+      switch (filter) {
+        case 'underfunded':
+          pass = status === 'underfunded';
+          break;
+        case 'overfunded':
+          pass = status === 'overfunded';
+          break;
+        case 'money_available':
+          pass = avail > 0.005;
+          break;
+        default:
+          pass = true;
+      }
+      if (pass) ids.add(cat.id);
+    }
+    return ids;
+  }, [categories, txns, tfrs, viewMonth, filter, search]);
 
   if (loading) {
     return (
@@ -55,11 +97,32 @@ export default function Dashboard() {
   }
 
   const selected = categories.find((c) => c.id === selectedId) ?? null;
+  const filterActive = filter !== 'all' || search.trim().length > 0;
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-4 space-y-4 lg:max-w-3xl lg:py-6">
+    <div className="mx-auto max-w-xl space-y-4 px-4 py-4 lg:max-w-4xl lg:py-6">
       <MonthNav month={viewMonth} onChange={setViewMonth} />
-      <MonthSummary month={viewMonth} txns={txns} tfrs={tfrs} />
+
+      <div className="flex justify-center">
+        <ReadyToAssignPill viewedMonth={viewMonth} />
+      </div>
+
+      <FilterChips
+        value={filter}
+        onChange={setFilter}
+        search={search}
+        onSearchChange={setSearch}
+      />
+
+      <BudgetToolbar
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onCreateGroup={() => navigate('/settings/groups')}
+      />
+
+      <div className="lg:hidden">
+        <MonthSummary month={viewMonth} txns={txns} tfrs={tfrs} />
+      </div>
 
       {groups.length === 0 ? (
         <EmptyState
@@ -75,7 +138,14 @@ export default function Dashboard() {
       ) : (
         <ul className="space-y-4">
           {groups.map((group) => {
-            const inGroup = categories.filter((c) => c.groupId === group.id);
+            const inGroup = categories
+              .filter((c) => c.groupId === group.id && !c.isArchived)
+              .filter((c) => filterMatches.has(c.id));
+
+            if (filterActive && inGroup.length === 0) {
+              return null;
+            }
+
             return (
               <li key={group.id}>
                 <div className="mb-2 flex items-end justify-between">
@@ -96,7 +166,9 @@ export default function Dashboard() {
                 </div>
                 {inGroup.length === 0 ? (
                   <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-4 py-3 text-xs text-[color:var(--color-fg-muted)]">
-                    No categories in this group yet.
+                    {filterActive
+                      ? 'No categories match this filter.'
+                      : 'No categories in this group yet.'}
                   </div>
                 ) : (
                   <ul className="divide-y divide-[color:var(--color-border)] overflow-hidden rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
@@ -107,7 +179,15 @@ export default function Dashboard() {
                           layout={!reduced}
                           initial={reduced ? false : { opacity: 0, y: -8 }}
                           animate={{ opacity: 1, y: 0, transition: spring.snappy }}
-                          exit={reduced ? { opacity: 0 } : { opacity: 0, x: -80, transition: { duration: 0.18 } }}
+                          exit={
+                            reduced
+                              ? { opacity: 0 }
+                              : {
+                                  opacity: 0,
+                                  x: -80,
+                                  transition: { duration: 0.18 },
+                                }
+                          }
                         >
                           <CategoryRow
                             cat={cat}

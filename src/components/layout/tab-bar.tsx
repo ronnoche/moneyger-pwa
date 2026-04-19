@@ -1,18 +1,22 @@
 import { NavLink } from 'react-router';
 import {
-  LayoutDashboard,
-  ListOrdered,
-  ArrowLeftRight,
   BarChart3,
+  Landmark,
+  LayoutDashboard,
   Menu,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
+// Section 6 of the UI prompt: mobile tab bar is reduced to 4 tabs. The old
+// Transactions tab is absorbed into All Accounts; the old Budget tab (Move
+// Money) becomes a modal invoked from inline edit / long-press / FAB.
+//
+// Section 7 and section 12 explicitly keep the mobile tab labeled "Reports"
+// even though the desktop sidebar uses "Reflect".
 const tabs = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/transactions', label: 'Transactions', icon: ListOrdered, end: false },
-  { to: '/budget', label: 'Budget', icon: ArrowLeftRight, end: false },
+  { to: '/', label: 'Budget', icon: LayoutDashboard, end: true },
   { to: '/reports', label: 'Reports', icon: BarChart3, end: false },
+  { to: '/accounts', label: 'Accounts', icon: Landmark, end: false },
   { to: '/more', label: 'More', icon: Menu, end: false },
 ] as const;
 

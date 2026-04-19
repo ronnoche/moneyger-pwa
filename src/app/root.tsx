@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { CommandPalette } from '@/components/ui/command-palette';
 import { ShortcutHelp } from '@/components/ui/shortcut-help';
 import { useAppHotkeys } from '@/hooks/use-app-hotkeys';
+import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed';
 import { useIsEmpty } from '@/db/hooks';
 import { isOnboardingComplete } from '@/lib/onboarding';
 
@@ -23,6 +24,7 @@ export function RootLayout() {
   const isEmpty = useIsEmpty();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [sidebarCollapsed, , toggleSidebarCollapsed] = useSidebarCollapsed();
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const openHelp = useCallback(() => setHelpOpen(true), []);
@@ -60,7 +62,11 @@ export function RootLayout() {
 
   return (
     <div className="flex min-h-dvh bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
-      <Sidebar onOpenPalette={openPalette} />
+      <Sidebar
+        onOpenPalette={openPalette}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
+      />
 
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
         <div className="lg:hidden">
