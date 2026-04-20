@@ -5,12 +5,14 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import { motion } from 'motion/react';
 import { SwipeRow } from '@/components/swipe-row';
 import { AmountDisplay } from '@/components/ui/amount-display';
+import { AvailablePill } from '@/components/budget/available-pill';
 import {
   categoryActivityForMonth,
   categoryAvailable,
   categoryBudgetedForMonth,
   goalProgress,
 } from '@/lib/budget-math';
+import { goalStatus, normalizeGoal } from '@/lib/goals';
 import type { Category, Transaction, Transfer } from '@/db/schema';
 import { cn } from '@/lib/cn';
 import { duration, ease } from '@/styles/motion';
@@ -38,6 +40,8 @@ export function CategoryRow({
   const budgeted = categoryBudgetedForMonth(cat.id, viewMonth, tfrs);
   const activity = categoryActivityForMonth(cat.id, viewMonth, txns);
   const progress = goalProgress(cat, avail, budgeted, viewMonth);
+  const normalizedGoal = normalizeGoal(cat);
+  const status = goalStatus(normalizedGoal, avail, budgeted, viewMonth);
 
   const prevPct = useRef<number | null>(progress?.pct ?? null);
   useEffect(() => {
@@ -62,9 +66,6 @@ export function CategoryRow({
   function goListFiltered() {
     navigate(`/transactions?category=${encodeURIComponent(cat.id)}`);
   }
-
-  const tone: 'negative' | 'neutral' | 'auto' =
-    avail < 0 ? 'negative' : avail === 0 ? 'neutral' : 'auto';
 
   return (
     <ContextMenu.Root>
@@ -120,13 +121,8 @@ export function CategoryRow({
                   className="text-[color:var(--color-fg-muted)]"
                 />
               </div>
-              <div className="w-24 text-right lg:w-28">
-                <AmountDisplay
-                  value={avail}
-                  tone={tone}
-                  size="sm"
-                  className={cn('tabular-nums', tone === 'auto' && 'text-[color:var(--color-fg)]')}
-                />
+              <div className="flex w-28 justify-end lg:w-28">
+                <AvailablePill value={avail} status={status} animate />
               </div>
             </button>
           </SwipeRow>

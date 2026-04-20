@@ -32,8 +32,11 @@ import {
   type BudgetFilterId,
 } from '@/components/budget/filter-chips';
 import { BudgetToolbar } from '@/components/budget/budget-toolbar';
+import { BulkActionsBar } from '@/components/budget/bulk-actions-bar';
+import { CategoryTable } from '@/components/budget/category-table';
 import { useBudgetViewMode } from '@/hooks/use-budget-view-mode';
 import { haptics } from '@/lib/haptics';
+import { cn } from '@/lib/cn';
 import type { Category, Transaction, Transfer } from '@/db/schema';
 
 const CategoryMiniBars = lazy(() =>
@@ -54,6 +57,31 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<BudgetFilterId>('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useBudgetViewMode();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
+
+  const toggleSelected = (id: string, next: boolean) => {
+    setSelectedIds((prev) => {
+      const copy = new Set(prev);
+      if (next) copy.add(id);
+      else copy.delete(id);
+      return copy;
+    });
+  };
+
+  const toggleGroupSelected = (ids: string[], next: boolean) => {
+    setSelectedIds((prev) => {
+      const copy = new Set(prev);
+      for (const id of ids) {
+        if (next) copy.add(id);
+        else copy.delete(id);
+      }
+      return copy;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
 
   const loading = !groups || !categories || !txns || !tfrs;
 
@@ -136,8 +164,32 @@ export default function Dashboard() {
           }
         />
       ) : (
-        <ul className="space-y-4">
-          {groups.map((group) => {
+        <>
+          {viewMode === 'list' && (
+            <div className="hidden lg:block">
+              <CategoryTable
+                groups={groups}
+                categories={categories}
+                txns={txns}
+                tfrs={tfrs}
+                viewMonth={viewMonth}
+                filterMatches={filterMatches}
+                filterActive={filterActive}
+                selectedIds={selectedIds}
+                onToggleSelected={toggleSelected}
+                onToggleGroup={toggleGroupSelected}
+                onOpenDetail={(id) => setSelectedId(id)}
+              />
+            </div>
+          )}
+
+          <ul
+            className={cn(
+              'space-y-4',
+              viewMode === 'list' && 'lg:hidden',
+            )}
+          >
+            {groups.map((group) => {
             const inGroup = categories
               .filter((c) => c.groupId === group.id && !c.isArchived)
               .filter((c) => filterMatches.has(c.id));
@@ -209,7 +261,16 @@ export default function Dashboard() {
             );
           })}
         </ul>
+        </>
       )}
+
+      <BulkActionsBar
+        selectedCount={selectedIds.size}
+        selectedIds={Array.from(selectedIds)}
+        viewedMonth={viewMonth}
+        onClear={clearSelection}
+        onApplied={clearSelection}
+      />
 
       <FloatingAdd />
 
