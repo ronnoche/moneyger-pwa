@@ -87,7 +87,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             />
             <Item
               icon={<BarChart3 size={16} strokeWidth={1.75} />}
-              label="Reports"
+              label="Reflect"
               shortcut={['g', 'r']}
               onSelect={() => run(() => navigate('/reports'))}
             />

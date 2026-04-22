@@ -58,7 +58,7 @@ export function Sheet({
                     : { y: '100%', transition: spring.snappy }
                 }
                 className={cn(
-                  'safe-pb fixed inset-x-0 bottom-0 z-50 mx-auto max-w-xl rounded-t-2xl bg-white px-4 pb-4 pt-3 shadow-2xl outline-none dark:bg-ink-900',
+                  'safe-pb fixed inset-x-0 bottom-0 z-50 mx-auto max-w-xl rounded-t-2xl bg-[color:var(--color-surface)] px-4 pb-4 pt-3 shadow-[var(--shadow-sheet)] outline-none',
                   className,
                 )}
               >
@@ -124,7 +124,7 @@ function SheetInner({
         aria-hidden
         className="mx-auto mb-3 flex h-6 w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
       >
-        <div className="h-1 w-10 rounded-full bg-ink-200 dark:bg-ink-700" />
+        <div className="h-1 w-10 rounded-full bg-[color:var(--color-ink-300)] dark:bg-[color:var(--color-border-strong)]" />
       </div>
       {title && (
         <Dialog.Title className="mb-1 text-base font-semibold">{title}</Dialog.Title>

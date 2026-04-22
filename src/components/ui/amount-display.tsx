@@ -16,10 +16,13 @@ interface AmountDisplayProps {
   'aria-label'?: string;
 }
 
+// Per DESIGN_1 §3: Geist Mono is reserved for amount-entry fields and code.
+// Display amounts use the system sans with tabular numerals, which keep
+// columns aligned without the ledger-screen feel.
 const sizeClasses: Record<Size, string> = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-2xl',
+  sm: 'text-sm font-sans',
+  md: 'text-base font-sans',
+  lg: 'text-2xl font-semibold font-sans tracking-tight',
   hero: 'text-amount text-5xl sm:text-6xl',
 };
 
@@ -129,7 +132,7 @@ export function AmountDisplay({
     <span
       aria-label={label}
       className={cn(
-        'inline-flex items-baseline font-mono tabular-nums',
+        'inline-flex items-baseline tabular-nums',
         sizeClasses[size],
         toneClass(tone, value),
         className,

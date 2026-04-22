@@ -23,15 +23,17 @@ type NativeButtonProps = Omit<
 
 type ButtonProps = BaseProps & HTMLMotionProps<'button'> & NativeButtonProps;
 
+// Per DESIGN_1 §4 Buttons: mobile has no hover. Desktop lifts bg by ~4% lightness.
+// Active state scales via Motion whileTap.
 const variants: Record<Variant, string> = {
   primary:
-    'bg-brand-600 text-white shadow-[var(--shadow-xs)] active:bg-brand-700 disabled:opacity-50',
+    'bg-[color:var(--color-brand-600)] text-white shadow-[var(--shadow-xs)] lg:hover:bg-[color:var(--color-brand-500)] active:bg-[color:var(--color-brand-700)] disabled:opacity-50',
   secondary:
-    'bg-[color:var(--color-surface)] text-[color:var(--color-fg)] border border-[color:var(--color-border)] active:bg-[color:var(--color-surface-2)]',
+    'bg-[color:var(--color-surface)] text-[color:var(--color-fg)] border border-[color:var(--color-border)] lg:hover:bg-[color:var(--color-surface-2)] active:bg-[color:var(--color-surface-2)]',
   ghost:
-    'bg-transparent text-[color:var(--color-fg)] active:bg-[color:var(--color-surface-2)]',
+    'bg-transparent text-[color:var(--color-fg)] lg:hover:bg-[color:var(--color-surface-2)] active:bg-[color:var(--color-surface-2)]',
   danger:
-    'bg-danger-600 text-white shadow-[var(--shadow-xs)] active:bg-danger-500',
+    'bg-[color:var(--color-danger-600)] text-white shadow-[var(--shadow-xs)] lg:hover:bg-[color:var(--color-danger-500)] active:bg-[color:var(--color-danger-500)]',
 };
 
 const sizes: Record<Size, string> = {

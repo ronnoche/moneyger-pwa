@@ -25,19 +25,20 @@ export function AvailablePill({
   const variant = classify(value);
   const funded = status === 'on_track' || status === 'funded';
 
-  const bg =
+  // Per DESIGN_1 §4 Available pill: 600 weight for positive/negative, 400 for zero.
+  const tone =
     variant === 'positive'
-      ? 'bg-[color:var(--color-positive-bg)] text-[color:var(--color-positive)]'
+      ? 'bg-[color:var(--color-positive-bg)] text-[color:var(--color-positive)] font-semibold'
       : variant === 'negative'
-        ? 'bg-[color:var(--color-danger-bg)] text-[color:var(--color-danger-600)]'
-        : 'bg-[color:var(--color-ink-100)] text-[color:var(--color-fg-muted)] dark:bg-[color:var(--color-surface-2)]';
+        ? 'bg-[color:var(--color-danger-bg)] text-[color:var(--color-danger-600)] font-semibold'
+        : 'bg-[color:var(--color-ink-100)] text-[color:var(--color-fg-muted)] font-normal dark:bg-[color:var(--color-surface-2)]';
 
   const content = (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
+        'inline-flex items-center gap-1 rounded-full px-3 py-0.5 text-sm',
         size === 'md' ? 'h-7' : 'h-6',
-        bg,
+        tone,
         className,
       )}
     >

@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Aspire Budget',
-        short_name: 'Aspire',
+        name: 'Moneyger',
+        short_name: 'Moneyger',
         description: 'Zero-based envelope budgeting, offline-first.',
         theme_color: '#0f172a',
         background_color: '#0f172a',

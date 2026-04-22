@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTransactions, useTransfers } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
-import { formatMoney } from '@/lib/format';
-import { cn } from '@/lib/cn';
+import { AmountDisplay } from '@/components/ui/amount-display';
 import { haptics } from '@/lib/haptics';
 
 export function AppHeader() {
@@ -23,27 +22,29 @@ export function AppHeader() {
     prevAtb.current = atb;
   }, [atb]);
 
+  const tone =
+    atb === null || atb === 0
+      ? 'neutral'
+      : atb > 0
+        ? 'positive'
+        : 'negative';
+
   return (
-    <header className="safe-pt safe-pl safe-pr sticky top-0 z-30 border-b border-ink-200 bg-white/85 backdrop-blur dark:border-ink-800 dark:bg-ink-900/85">
+    <header className="safe-pt safe-pl safe-pr sticky top-0 z-30 border-b border-[color:var(--color-border)] bg-[color:var(--color-surface)]/85 backdrop-blur-lg">
       <div className="mx-auto flex max-w-xl items-center justify-between px-4 py-2">
         <div>
-          <div className="text-[11px] uppercase tracking-wider text-ink-500">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[color:var(--color-fg-muted)]">
             Available to Budget
           </div>
-          <div
-            className={cn(
-              'font-semibold tabular-nums text-2xl',
-              atb === null
-                ? 'text-ink-400'
-                : atb > 0
-                  ? 'text-brand-600 dark:text-brand-500'
-                  : atb < 0
-                    ? 'text-danger-600 dark:text-danger-500'
-                    : 'text-ink-700 dark:text-ink-200',
-            )}
-          >
-            {atb === null ? '--' : formatMoney(atb)}
-          </div>
+          <AmountDisplay
+            value={atb ?? 0}
+            tone={tone}
+            size="lg"
+            animate
+            aria-label={
+              atb === null ? 'Calculating available to budget' : undefined
+            }
+          />
         </div>
       </div>
     </header>

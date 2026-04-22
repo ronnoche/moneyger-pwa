@@ -14,7 +14,7 @@ const NAV: Row[] = [
   { keys: ['g', 'd'], label: 'Dashboard' },
   { keys: ['g', 't'], label: 'Transactions' },
   { keys: ['g', 'b'], label: 'Move Money' },
-  { keys: ['g', 'r'], label: 'Reports' },
+  { keys: ['g', 'r'], label: 'Reflect' },
   { keys: ['g', 'a'], label: 'Accounts' },
   { keys: ['g', 's'], label: 'Settings' },
 ];

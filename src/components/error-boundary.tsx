@@ -18,7 +18,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error('Aspire error boundary caught:', error, info);
+    console.error('Moneyger error boundary caught:', error, info);
   }
 
   reset = (): void => {

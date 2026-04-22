@@ -11,7 +11,7 @@ import type {
   Transfer,
 } from './schema';
 
-export class AspireDB extends Dexie {
+export class MoneygerDB extends Dexie {
   groups!: EntityTable<Group, 'id'>;
   categories!: EntityTable<Category, 'id'>;
   accounts!: EntityTable<Account, 'id'>;
@@ -23,7 +23,7 @@ export class AspireDB extends Dexie {
   budgetNotes!: EntityTable<BudgetNote, 'id'>;
 
   constructor() {
-    super('aspire-pwa');
+    super('moneyger-pwa');
 
     this.version(1).stores({
       groups: 'id, sortOrder, isArchived',
@@ -59,7 +59,7 @@ export class AspireDB extends Dexie {
   }
 }
 
-export const db = new AspireDB();
+export const db = new MoneygerDB();
 
 export function newId(): string {
   return crypto.randomUUID();

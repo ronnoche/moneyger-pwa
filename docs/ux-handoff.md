@@ -1,4 +1,4 @@
-# Aspire Budget PWA - UX/UI Handoff
+# Moneyger - UX/UI Handoff
 
 Single-source brief for the AI Product Designer. Covers what the app is, who it serves, how it behaves, and every screen's affordances, actions, and states. Use it to redesign the UI/UX without reading source code.
 
@@ -6,11 +6,11 @@ Single-source brief for the AI Product Designer. Covers what the app is, who it 
 
 ## 1. Product snapshot
 
-- **Name:** Aspire Budget PWA
+- **Name:** Moneyger
 - **Category:** Personal finance, zero-based envelope budgeting
 - **Platform:** Installable PWA, mobile-first, iOS home-screen priority. Also works on desktop as a responsive single-column web app
 - **Offline:** Fully offline. All data lives locally in IndexedDB (Dexie). No auth, no accounts, no cloud
-- **Inspiration:** Aspire Budgeting v4.0 Google Sheet. The methodology and math must not drift
+- **Inspiration:** Moneyger Budgeting v4.0 Google Sheet. The methodology and math must not drift
 - **Current status:** Phase 3 complete. Core CRUD, dashboard with month navigation, reports, net worth, backup/restore, theme toggle
 
 ### Mental model the user holds
@@ -31,7 +31,7 @@ Single-source brief for the AI Product Designer. Covers what the app is, who it 
 
 ## 2. Users and context
 
-- Primary: self-taught budgeters migrating from the Aspire Google Sheet. Comfortable with envelope budgeting, hate spreadsheets on mobile
+- Primary: self-taught budgeters migrating from the Moneyger Google Sheet. Comfortable with envelope budgeting, hate spreadsheets on mobile
 - Secondary: new budgeters. They get the 4-step onboarding
 - Context: checking phone mid-checkout, 10 seconds to log a transaction. Assume one-handed use
 
@@ -116,10 +116,10 @@ Tokens are defined in `src/styles/index.css`. Treat them as the baseline. The de
 
 ### Motion (keyframes defined in CSS)
 
-- `aspire-fade-in` 180 ms ease-out
-- `aspire-fade-out` 150 ms ease-in
-- `aspire-slide-up` 220 ms `cubic-bezier(0.32, 0.72, 0, 1)` (used for sheet enter)
-- `aspire-slide-down` 180 ms same easing (sheet exit)
+- `moneyger-fade-in` 180 ms ease-out
+- `moneyger-fade-out` 150 ms ease-in
+- `moneyger-slide-up` 220 ms `cubic-bezier(0.32, 0.72, 0, 1)` (used for sheet enter)
+- `moneyger-slide-down` 180 ms same easing (sheet exit)
 
 The designer may propose new motion tokens but should keep durations <= 250 ms for everyday transitions to stay iOS-native feeling.
 
@@ -177,7 +177,7 @@ Tab bar is fixed, full-width, `h-14` rows, 11 px labels stacked under 22 px icon
 
 ## 7. Domain vocabulary and what the user should see
 
-The designer must preserve these terms exactly. They map to Aspire's spreadsheet conventions.
+The designer must preserve these terms exactly. They map to Moneyger's spreadsheet conventions.
 
 
 | Concept               | UI label                                                         | Meaning                                                                          |
@@ -329,7 +329,7 @@ Each entry documents: purpose, when user lands here, key info displayed, afforda
 - **Purpose:** First-run welcome. Shown automatically when groups, categories, and accounts are all empty
 - **Layout:** Full-height, top-aligned heading block, bottom-pinned primary CTA
 - **Content:**
-  - H1 "Welcome to Aspire"
+  - H1 "Welcome to Moneyger"
   - Subcopy explaining zero-based envelope budgeting
   - Numbered 4-step list (cards): Create a group -> Add categories -> Add an account -> Record income
 - **Affordances:**
@@ -559,7 +559,7 @@ Each entry documents: purpose, when user lands here, key info displayed, afforda
 
 - **Purpose:** Toggle theme preference
 - **Layout:** 3-option radio-like list: System, Light, Dark. Selected row shows `Check` icon on the right and `brand-600` text
-- **Behavior:** Preference stored in localStorage (`aspire:theme`). Class `.dark` applied to `<html>` pre-hydration to avoid flash
+- **Behavior:** Preference stored in localStorage (`moneyger:theme`). Class `.dark` applied to `<html>` pre-hydration to avoid flash
 - **Design opportunity:**
   - Add live preview tiles
   - Add accent color options (would require more tokens)

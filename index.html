@@ -10,12 +10,12 @@
 
     <meta
       name="theme-color"
-      content="#f8fafc"
+      content="#fafbfc"
       media="(prefers-color-scheme: light)"
     />
     <meta
       name="theme-color"
-      content="#0f172a"
+      content="#141921"
       media="(prefers-color-scheme: dark)"
     />
 
@@ -25,15 +25,15 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="Aspire" />
-    <meta name="application-name" content="Aspire Budget" />
+    <meta name="apple-mobile-web-app-title" content="Moneyger" />
+    <meta name="application-name" content="Moneyger" />
     <link
       rel="apple-touch-icon"
       sizes="180x180"
       href="/apple-touch-icon-180x180.png"
     />
 
-    <title>Aspire Budget</title>
+    <title>Moneyger</title>
     <meta
       name="description"
       content="Zero-based envelope budgeting, offline-first."
@@ -41,7 +41,7 @@
     <script>
       (function () {
         try {
-          var pref = localStorage.getItem('aspire:theme');
+          var pref = localStorage.getItem('moneyger:theme');
           var dark =
             pref === 'dark' ||
             ((pref === 'system' || !pref) &&
@@ -49,7 +49,7 @@
           if (dark) document.documentElement.classList.add('dark');
         } catch (e) {}
         try {
-          var key = 'aspire:visits';
+          var key = 'moneyger:visits';
           var n = parseInt(localStorage.getItem(key) || '0', 10);
           if (isNaN(n)) n = 0;
           localStorage.setItem(key, String(n + 1));

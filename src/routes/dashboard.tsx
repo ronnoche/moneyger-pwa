@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus } from 'lucide-react';
@@ -12,19 +12,16 @@ import {
   useTransfers,
 } from '@/db/hooks';
 import {
-  categoryActivityForMonth,
   categoryAvailable,
   categoryBudgetedForMonth,
-  goalProgress,
 } from '@/lib/budget-math';
 import { goalStatus, normalizeGoal } from '@/lib/goals';
 import { Sheet } from '@/components/ui/sheet';
 import { MonthNav } from '@/components/month-nav';
-import { AmountDisplay } from '@/components/ui/amount-display';
 import { Button } from '@/components/ui/button';
 import { MonthSummary } from '@/components/dashboard/month-summary';
 import { CategoryRow } from '@/components/dashboard/category-row';
-import { Skeleton, SkeletonRows } from '@/components/ui/skeleton';
+import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ReadyToAssignPill } from '@/components/budget/ready-to-assign-pill';
 import {
@@ -34,16 +31,12 @@ import {
 import { BudgetToolbar } from '@/components/budget/budget-toolbar';
 import { BulkActionsBar } from '@/components/budget/bulk-actions-bar';
 import { CategoryTable } from '@/components/budget/category-table';
+import { BudgetInspector } from '@/components/budget/budget-inspector';
+import { CategoryInspector } from '@/components/budget/category-inspector';
 import { useBudgetViewMode } from '@/hooks/use-budget-view-mode';
+import { useLargeScreen } from '@/hooks/use-large-screen';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
-import type { Category, Transaction, Transfer } from '@/db/schema';
-
-const CategoryMiniBars = lazy(() =>
-  import('@/components/dashboard/category-mini-bars').then((m) => ({
-    default: m.CategoryMiniBars,
-  })),
-);
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -82,6 +75,7 @@ export default function Dashboard() {
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+  const isLg = useLargeScreen();
 
   const loading = !groups || !categories || !txns || !tfrs;
 
@@ -128,7 +122,8 @@ export default function Dashboard() {
   const filterActive = filter !== 'all' || search.trim().length > 0;
 
   return (
-    <div className="mx-auto max-w-xl space-y-4 px-4 py-4 lg:max-w-4xl lg:py-6">
+    <div className="lg:flex lg:items-start">
+      <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-4 lg:max-w-4xl lg:flex-1 lg:py-6 lg:pr-6">
       <MonthNav month={viewMonth} onChange={setViewMonth} />
 
       <div className="flex justify-center">
@@ -275,121 +270,30 @@ export default function Dashboard() {
       <FloatingAdd />
 
       <Sheet
-        open={selected !== null}
+        open={!isLg && selected !== null}
         onOpenChange={(v) => !v && setSelectedId(null)}
         title={selected?.name ?? ''}
       >
         {selected && (
-          <CategoryDetail
+          <CategoryInspector
             cat={selected}
             txns={txns}
             tfrs={tfrs}
             viewMonth={viewMonth}
+            onClose={() => setSelectedId(null)}
           />
         )}
       </Sheet>
-    </div>
-  );
-}
-
-function CategoryDetail({
-  cat,
-  txns,
-  tfrs,
-  viewMonth,
-}: {
-  cat: Category;
-  txns: Transaction[];
-  tfrs: Transfer[];
-  viewMonth: Date;
-}) {
-  const avail = categoryAvailable(cat.id, txns, tfrs);
-  const activity = categoryActivityForMonth(cat.id, viewMonth, txns);
-  const budgeted = categoryBudgetedForMonth(cat.id, viewMonth, tfrs);
-  const progress = goalProgress(cat, avail, budgeted, viewMonth);
-
-  return (
-    <div className="space-y-3 pb-2">
-      <div className="grid grid-cols-3 gap-2">
-        <Stat label="Available" value={avail} tone="auto" animate />
-        <Stat label="Activity" value={activity} tone="neutral" />
-        <Stat label="Budgeted" value={budgeted} tone="auto" animate />
       </div>
-
-      {progress && (
-        <div className="rounded-xl bg-[color:var(--color-surface-2)] p-3">
-          <div className="mb-1 flex items-center justify-between text-xs text-[color:var(--color-fg-muted)]">
-            <span>Goal</span>
-            <AmountDisplay value={progress.target} size="sm" tone="neutral" />
-          </div>
-          <ProgressBar pct={progress.pct} />
-          {progress.perMonth !== null && progress.perMonth > 0 && (
-            <div className="mt-1 text-xs text-[color:var(--color-fg-muted)]">
-              <AmountDisplay
-                value={progress.perMonth}
-                size="sm"
-                tone="neutral"
-              />{' '}
-              needed per month
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="rounded-xl border border-[color:var(--color-border)] p-3">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[color:var(--color-fg-muted)]">
-          Activity - last 30 days
-        </div>
-        <Suspense fallback={<Skeleton height="4rem" rounded="md" />}>
-          <CategoryMiniBars categoryId={cat.id} txns={txns} />
-        </Suspense>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-1">
-        <Link
-          to={`/budget?to=${encodeURIComponent(cat.id)}`}
-          className="flex h-11 items-center justify-center rounded-xl bg-[color:var(--color-brand-600)] text-sm font-semibold text-white active:bg-[color:var(--color-brand-700)]"
-        >
-          Move money
-        </Link>
-        <Link
-          to={`/transactions/new?category=${encodeURIComponent(cat.id)}`}
-          className="flex h-11 items-center justify-center rounded-xl border border-[color:var(--color-border)] text-sm font-semibold text-[color:var(--color-fg)]"
-        >
-          New transaction
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-  animate,
-}: {
-  label: string;
-  value: number;
-  tone: 'auto' | 'positive' | 'negative' | 'neutral';
-  animate?: boolean;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-0.5 rounded-xl bg-[color:var(--color-surface-2)] p-3 text-center">
-      <div className="text-[11px] uppercase tracking-wider text-[color:var(--color-fg-muted)]">
-        {label}
-      </div>
-      <AmountDisplay value={value} tone={tone} size="sm" animate={animate} />
-    </div>
-  );
-}
-
-function ProgressBar({ pct }: { pct: number }) {
-  return (
-    <div className="h-1 w-full overflow-hidden rounded-full bg-[color:var(--color-border)]">
-      <div
-        className="h-full rounded-full bg-[color:var(--color-brand-500)]"
-        style={{ width: `${Math.min(100, Math.round(pct * 100))}%` }}
+      <BudgetInspector
+        categories={categories}
+        txns={txns}
+        tfrs={tfrs}
+        viewMonth={viewMonth}
+        selectedId={selectedId}
+        selectedIds={selectedIds}
+        onClearSelection={clearSelection}
+        onCloseInspector={() => setSelectedId(null)}
       />
     </div>
   );

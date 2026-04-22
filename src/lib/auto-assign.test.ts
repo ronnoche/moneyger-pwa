@@ -14,7 +14,7 @@ import {
 } from './auto-assign/presets';
 import type { PresetInput } from './auto-assign/types';
 import { applyPreset, revertAutoAssign } from './auto-assign';
-import { AspireDB } from '@/db/db';
+import { MoneygerDB } from '@/db/db';
 
 const GROCERIES = 'cat-groc';
 const RENT = 'cat-rent';
@@ -308,13 +308,13 @@ describe('resetAssigned preset', () => {
 });
 
 describe('applyPreset + revertAutoAssign (integration)', () => {
-  let db: AspireDB;
+  let db: MoneygerDB;
 
   beforeEach(async () => {
     if (db) db.close();
-    const fresh = new AspireDB();
+    const fresh = new MoneygerDB();
     await fresh.delete();
-    db = new AspireDB();
+    db = new MoneygerDB();
     await db.open();
   });
 

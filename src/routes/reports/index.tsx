@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn';
 export default function Reports() {
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
-      <PageHeader title="Reports" />
+      <PageHeader title="Reflect" />
       <Tabs.Root defaultValue="spending" className="space-y-4">
         <Tabs.List className="grid grid-cols-2 overflow-hidden rounded-xl border border-ink-200 dark:border-ink-700">
           <TabTrigger value="spending" label="Spending" />

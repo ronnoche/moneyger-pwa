@@ -6,7 +6,7 @@ import {
   useStandalone,
 } from '@/hooks/use-standalone';
 
-const DISMISSED_KEY = 'aspire:install-prompt-dismissed';
+const DISMISSED_KEY = 'moneyger:install-prompt-dismissed';
 const MIN_VISITS = 3;
 
 export function InstallPrompt() {
@@ -23,7 +23,7 @@ export function InstallPrompt() {
     if (getVisitCount() < MIN_VISITS) return;
 
     const id = window.setTimeout(() => {
-      toast.info('Add Aspire to your Home Screen', {
+      toast.info('Add Moneyger to your Home Screen', {
         description:
           'Tap the Share icon in Safari, then choose "Add to Home Screen".',
         duration: 12000,

@@ -73,7 +73,7 @@ export function ReadyToAssignPill({ viewedMonth, onPresetApplied }: Props) {
         animate={controls}
         transition={{ duration: duration.base }}
         className={cn(
-          'mx-auto flex w-full max-w-[420px] items-center gap-3 rounded-xl px-4 py-3 shadow-sm',
+          'mx-auto flex w-full max-w-[420px] items-center gap-3 rounded-xl px-4 py-3 shadow-[var(--shadow-sm)]',
           bgClass,
         )}
       >
@@ -83,9 +83,11 @@ export function ReadyToAssignPill({ viewedMonth, onPresetApplied }: Props) {
             tone="neutral"
             size="lg"
             animate
-            className="!text-[color:inherit]"
+            className="!text-[color:inherit] lg:!text-[28px] lg:!leading-8"
           />
-          <span className="text-[11px] font-medium tracking-wide">{subCopy}</span>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.05em] opacity-80">
+            {subCopy}
+          </span>
         </div>
         <div className="shrink-0">
           {state === 'zero' && (

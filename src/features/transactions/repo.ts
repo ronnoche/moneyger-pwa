@@ -1,7 +1,7 @@
 import { db, newId, nowISO } from '@/db/db';
 import type { Transaction } from '@/db/schema';
 
-const LAST_ACCOUNT_KEY = 'aspire:last-account';
+const LAST_ACCOUNT_KEY = 'moneyger:last-account';
 
 export interface TransactionInput {
   date: string;

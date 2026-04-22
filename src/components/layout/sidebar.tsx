@@ -111,7 +111,7 @@ export function Sidebar({
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-semibold tracking-tight">
-              Aspire Budget
+              Moneyger
             </span>
             <span className="truncate text-[11px] text-[color:var(--color-fg-muted)]">
               My Budget

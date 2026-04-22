@@ -1,4 +1,4 @@
-# Aspire Budget PWA
+# Moneyger
 
 Zero-based envelope budgeting, offline-first, installable on iOS.
 

@@ -1,4 +1,4 @@
-const KEY = 'aspire:onboarding.complete';
+const KEY = 'moneyger:onboarding.complete';
 
 export function isOnboardingComplete(): boolean {
   if (typeof localStorage === 'undefined') return false;

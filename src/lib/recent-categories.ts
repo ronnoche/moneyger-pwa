@@ -1,4 +1,4 @@
-const KEY = 'aspire:recentCategoryIds';
+const KEY = 'moneyger:recentCategoryIds';
 const MAX = 5;
 
 export function getRecentCategoryIds(): string[] {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { BudgetViewMode } from '@/components/budget/budget-toolbar';
 
-const KEY = 'aspire:budget-view-mode';
+const KEY = 'moneyger:budget-view-mode';
 
 function isValid(v: unknown): v is BudgetViewMode {
   return v === 'list' || v === 'block';

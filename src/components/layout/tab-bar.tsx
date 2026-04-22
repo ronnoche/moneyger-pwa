@@ -7,15 +7,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-// Section 6 of the UI prompt: mobile tab bar is reduced to 4 tabs. The old
-// Transactions tab is absorbed into All Accounts; the old Budget tab (Move
-// Money) becomes a modal invoked from inline edit / long-press / FAB.
-//
-// Section 7 and section 12 explicitly keep the mobile tab labeled "Reports"
-// even though the desktop sidebar uses "Reflect".
+// Mobile tab bar: 4 primary destinations per DESIGN_1 §4 Tab bar.
+// Labels mirror the desktop sidebar ("Reflect") for cross-platform consistency.
 const tabs = [
   { to: '/', label: 'Budget', icon: LayoutDashboard, end: true },
-  { to: '/reports', label: 'Reports', icon: BarChart3, end: false },
+  { to: '/reports', label: 'Reflect', icon: BarChart3, end: false },
   { to: '/accounts', label: 'Accounts', icon: Landmark, end: false },
   { to: '/more', label: 'More', icon: Menu, end: false },
 ] as const;
@@ -23,7 +19,7 @@ const tabs = [
 export function TabBar() {
   return (
     <nav
-      className="safe-pb fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white/90 backdrop-blur dark:border-ink-700 dark:bg-ink-900/90"
+      className="safe-pb fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--color-border)] bg-[color:var(--color-surface)]/80 backdrop-blur-lg"
       aria-label="Primary"
     >
       <ul className="mx-auto flex max-w-xl items-stretch justify-between px-2 pt-1">
@@ -34,14 +30,14 @@ export function TabBar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex h-14 flex-col items-center justify-center gap-0.5 rounded-md text-[11px] font-medium',
+                  'flex h-14 flex-col items-center justify-center gap-1 rounded-md text-[11px] font-semibold uppercase tracking-[0.05em]',
                   isActive
-                    ? 'text-brand-600 dark:text-brand-500'
-                    : 'text-ink-500 dark:text-ink-400',
+                    ? 'text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-500)]'
+                    : 'text-[color:var(--color-fg-muted)]',
                 )
               }
             >
-              <Icon size={22} strokeWidth={2} aria-hidden />
+              <Icon size={22} strokeWidth={1.75} aria-hidden />
               <span>{label}</span>
             </NavLink>
           </li>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const KEY = 'aspire:sidebar-collapsed';
+const KEY = 'moneyger:sidebar-collapsed';
 
 function read(): boolean {
   if (typeof window === 'undefined') return false;

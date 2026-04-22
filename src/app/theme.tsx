@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ThemeContext, type ThemePreference } from '@/app/theme-context';
 
-const STORAGE_KEY = 'aspire:theme';
+const STORAGE_KEY = 'moneyger:theme';
 
 function readStoredPreference(): ThemePreference {
   try {

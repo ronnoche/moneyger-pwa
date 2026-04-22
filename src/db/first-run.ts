@@ -1,6 +1,6 @@
 import { db } from './db';
 
-const FIRST_RUN_KEY = 'aspire:first-run-complete';
+const FIRST_RUN_KEY = 'moneyger:first-run-complete';
 
 export async function ensureFirstRun(): Promise<void> {
   if (localStorage.getItem(FIRST_RUN_KEY) === '1') return;

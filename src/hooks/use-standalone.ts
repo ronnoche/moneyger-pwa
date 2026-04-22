@@ -34,7 +34,7 @@ export function isIosSafari(): boolean {
 
 export function getVisitCount(): number {
   try {
-    const raw = localStorage.getItem('aspire:visits');
+    const raw = localStorage.getItem('moneyger:visits');
     const n = parseInt(raw ?? '0', 10);
     return Number.isFinite(n) ? n : 0;
   } catch {

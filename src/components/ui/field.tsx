@@ -31,5 +31,7 @@ export function Field({ label, htmlFor, error, hint, className, children }: Fiel
   );
 }
 
+// Per DESIGN_1 §4 Inputs: 48px height, rounded-lg (8px), 1px ink-200 default,
+// 2px brand-600 on focus. Numeric fields can layer `tabular-nums text-right`.
 export const inputClass =
-  'h-12 w-full rounded-xl border border-ink-200 bg-white px-3 text-base text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-50';
+  'h-12 w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 text-sm text-[color:var(--color-fg)] placeholder:text-[color:var(--color-fg-subtle)] outline-none focus:border-[color:var(--color-brand-600)] focus:ring-2 focus:ring-[color:var(--color-brand-600)]/20';

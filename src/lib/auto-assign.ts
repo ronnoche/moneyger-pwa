@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { AspireDB, newId, nowISO } from '@/db/db';
+import { MoneygerDB, newId, nowISO } from '@/db/db';
 import { AVAILABLE_TO_BUDGET } from './budget-math';
 import { runPreset } from './auto-assign/presets';
 import type { PresetInput } from './auto-assign/types';
@@ -29,7 +29,7 @@ function monthKey(d: Date): string {
 export async function applyPreset(
   presetId: string,
   input: PresetInput,
-  db: AspireDB,
+  db: MoneygerDB,
 ): Promise<AutoAssignHistoryEntry> {
   const result = runPreset(presetId, input);
   const today = isoToday();
@@ -85,7 +85,7 @@ export async function applyPreset(
 
 export async function revertAutoAssign(
   historyEntryId: string,
-  db: AspireDB,
+  db: MoneygerDB,
 ): Promise<void> {
   await db.transaction('rw', db.transfers, db.autoAssignHistory, async () => {
     const entry = await db.autoAssignHistory.get(historyEntryId);
