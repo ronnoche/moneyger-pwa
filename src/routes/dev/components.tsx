@@ -14,7 +14,6 @@ import { AmountDisplay } from '@/components/ui/amount-display';
 import { Skeleton, SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ConfirmSheet } from '@/components/ui/confirm-sheet';
-import { Numpad } from '@/components/ui/numpad';
 import { toast } from '@/lib/toast';
 import { PageHeader } from '@/components/layout/page-header';
 import { Field } from '@/components/ui/field';
@@ -24,7 +23,6 @@ export default function DevComponents() {
   const [destructiveOpen, setDestructiveOpen] = useState(false);
   const [typedOpen, setTypedOpen] = useState(false);
   const [amount, setAmount] = useState(1234.56);
-  const [padValue, setPadValue] = useState(0);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24">
@@ -102,15 +100,6 @@ export default function DevComponents() {
         </Field>
       </Section>
 
-      <Section title="Numpad (auto-decimal, 1234 = $12.34)">
-        <div className="rounded-xl border border-[color:var(--color-border)] overflow-hidden">
-          <div className="p-6 flex justify-center bg-[color:var(--color-bg)]">
-            <AmountDisplay value={padValue} size="hero" tone="neutral" />
-          </div>
-          <Numpad value={padValue} onChange={setPadValue} />
-        </div>
-      </Section>
-
       <Section title="SwipeRow (single delete)">
         <div className="rounded-xl border border-[color:var(--color-border)] overflow-hidden">
           <SwipeRow onDelete={() => toast.success('Deleted')}>
@@ -162,8 +151,8 @@ export default function DevComponents() {
         <div className="grid gap-6 sm:grid-cols-2">
           <EmptyState
             kind="envelopes"
-            title="No categories yet"
-            description="Set up groups and categories to start budgeting."
+            title="No bucket lists yet"
+            description="Set up buckets and bucket lists to start budgeting."
             action={<Button size="sm">Add a group</Button>}
           />
           <EmptyState
@@ -179,7 +168,7 @@ export default function DevComponents() {
           <EmptyState
             kind="mountain"
             title="No goals yet"
-            description="Set a target on any category to track progress."
+            description="Set a target on any bucket list to track progress."
           />
           <EmptyState
             kind="search"

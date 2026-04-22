@@ -134,7 +134,7 @@ export function CategoryRow({
           className="min-w-48 rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-1 shadow-[var(--shadow-lg)] z-50"
         >
           <MenuItem onSelect={onEdit} icon={<Pencil size={14} strokeWidth={1.75} />}>
-            Edit category
+            Edit bucket list
           </MenuItem>
           <MenuItem onSelect={goMoveMoney} icon={<ArrowRightLeft size={14} strokeWidth={1.75} />}>
             Move money

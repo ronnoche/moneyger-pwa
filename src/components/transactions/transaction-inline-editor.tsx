@@ -55,7 +55,7 @@ export function TransactionInlineEditor({ txn, onDone }: InlineEditorProps) {
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
       next.amount = 'Enter an amount greater than zero';
     }
-    if (!categoryId) next.category = 'Pick a category';
+    if (!categoryId) next.category = 'Pick a bucket list';
     if (!accountId) next.account = 'Pick an account';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) next.date = 'Pick a date';
     setErrors(next);
@@ -160,9 +160,9 @@ export function TransactionInlineEditor({ txn, onDone }: InlineEditorProps) {
           error={errors.account}
         />
         <PickerCard
-          label="Category"
+          label="Bucket List"
           value={categoryLabel}
-          placeholder="Pick category"
+          placeholder="Pick bucket list"
           icon={Tag}
           onClick={() => setCategoryOpen(true)}
           error={errors.category}
@@ -254,7 +254,7 @@ export function TransactionInlineEditor({ txn, onDone }: InlineEditorProps) {
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Delete this transaction?"
-        description="This removes the transaction from its account and category math. You can undo for a few seconds."
+        description="This removes the transaction from its account and bucket list math. You can undo for a few seconds."
         confirmLabel="Delete"
         destructive
         onConfirm={handleDelete}

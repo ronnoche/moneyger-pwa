@@ -98,7 +98,7 @@ export function AutoAssignPanel({
         description={
           confirmId === 'reset_available'
             ? 'This returns all Available balances to the Available to Budget pool. You can undo from the Recent Moves list.'
-            : 'This clears every category’s Budgeted for this month. You can undo from the Recent Moves list.'
+            : 'This clears every bucket list’s Budgeted for this month. You can undo from the Recent Moves list.'
         }
         destructive
         confirmLabel="Reset"

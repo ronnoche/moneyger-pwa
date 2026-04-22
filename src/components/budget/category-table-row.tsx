@@ -107,7 +107,7 @@ export function CategoryTableRow({
             icon={<Pencil size={14} strokeWidth={1.75} />}
             onSelect={() => onOpenDetail(cat.id)}
           >
-            Edit category
+            Edit bucket list
           </MenuItem>
           <MenuItem
             icon={<ArrowRightLeft size={14} strokeWidth={1.75} />}

@@ -151,7 +151,7 @@ export default function Dashboard() {
         <EmptyState
           kind="envelopes"
           title="No groups yet"
-          description="Bundle related categories together. Monthly Bills, Savings, Fun Money."
+          description="Bundle related bucket lists together. Monthly Bills, Savings, Fun Money."
           action={
             <Link to="/settings/groups">
               <Button size="sm">Create a group</Button>
@@ -214,8 +214,8 @@ export default function Dashboard() {
                 {inGroup.length === 0 ? (
                   <div className="rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-4 py-3 text-xs text-[color:var(--color-fg-muted)]">
                     {filterActive
-                      ? 'No categories match this filter.'
-                      : 'No categories in this group yet.'}
+                      ? 'No bucket lists match this filter.'
+                      : 'No bucket lists in this bucket yet.'}
                   </div>
                 ) : (
                   <ul className="divide-y divide-[color:var(--color-border)] overflow-hidden rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)]">

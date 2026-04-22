@@ -12,7 +12,7 @@ export default function Settings() {
 
       <section className="space-y-3">
         <SettingsRow label="Groups" count={groups?.length ?? 0} />
-        <SettingsRow label="Categories" count={categories?.length ?? 0} />
+        <SettingsRow label="Bucket Lists" count={categories?.length ?? 0} />
         <SettingsRow label="Accounts" count={accounts?.length ?? 0} />
       </section>
 

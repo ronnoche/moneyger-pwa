@@ -157,7 +157,7 @@ export default function SpendingTab() {
         <GroupingButton
           active={grouping === 'category'}
           onClick={() => setGrouping('category')}
-          label="By category"
+          label="By bucket list"
         />
         <GroupingButton
           active={grouping === 'group'}

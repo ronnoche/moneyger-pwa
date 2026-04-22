@@ -68,7 +68,7 @@ export function FilterChips({ value, onChange, search, onSearchChange }: Props) 
               ref={inputRef}
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Find category..."
+              placeholder="Find bucket list..."
               className="h-8 w-40 bg-transparent text-[13px] outline-none placeholder:text-[color:var(--color-fg-muted)]"
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
@@ -93,7 +93,7 @@ export function FilterChips({ value, onChange, search, onSearchChange }: Props) 
         ) : (
           <button
             type="button"
-            aria-label="Search categories"
+            aria-label="Search bucket lists"
             onClick={() => setSearchOpen(true)}
             className="flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--color-fg-muted)] hover:bg-[color:var(--color-surface-2)]"
           >

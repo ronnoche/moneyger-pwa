@@ -12,7 +12,7 @@ export const transactionFormSchema = z
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a date'),
     direction: z.enum(['outflow', 'inflow']),
     amount: moneyString,
-    categoryId: z.string().min(1, 'Pick a category'),
+    categoryId: z.string().min(1, 'Pick a bucket list'),
     accountId: z.string().min(1, 'Pick an account'),
     memo: z.string().max(200, 'Keep memo under 200 characters'),
     status: z.enum(['cleared', 'pending', 'reconciled']),

@@ -362,7 +362,7 @@ function buildActiveChips(
         : (categories.find((c) => c.id === f.categoryId)?.name ?? 'Unknown');
     chips.push({
       id: 'category',
-      label: `Category: ${label}`,
+      label: `Bucket List: ${label}`,
       onRemove: () => setFilters({ ...f, categoryId: '' }),
     });
   }
@@ -425,7 +425,7 @@ function labelFor(
 ): string {
   if (t.categoryId === AVAILABLE_TO_BUDGET) return 'Available to Budget';
   const cat = categories?.find((c) => c.id === t.categoryId);
-  return cat?.name ?? 'Unknown category';
+  return cat?.name ?? 'Unknown bucket list';
 }
 
 function accountName(

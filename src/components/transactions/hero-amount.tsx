@@ -7,6 +7,7 @@ interface HeroAmountProps {
   value: number;
   direction: 'outflow' | 'inflow';
   currency?: string;
+  size?: 'default' | 'large';
 }
 
 function splitParts(value: number, currency: string) {
@@ -40,6 +41,7 @@ export function HeroAmount({
   value,
   direction,
   currency = 'USD',
+  size = 'default',
 }: HeroAmountProps) {
   const parts = useMemo(() => splitParts(value, currency), [value, currency]);
   const empty = value === 0;
@@ -60,7 +62,8 @@ export function HeroAmount({
       transition={{ duration: duration.fast, ease: ease.out }}
       aria-label={`${direction === 'inflow' ? 'Inflow' : 'Outflow'} amount ${value.toFixed(2)} ${currency}`}
       className={cn(
-        'text-amount flex items-baseline justify-center select-none',
+        'flex items-baseline justify-center select-none',
+        size === 'large' ? 'text-[4.5rem] leading-[4.5rem] sm:text-[5rem] sm:leading-[5rem]' : 'text-amount',
         empty && 'text-[color:var(--color-fg-subtle)]',
       )}
     >

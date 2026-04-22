@@ -75,7 +75,7 @@ function TableHeader() {
   return (
     <div className="grid grid-cols-[32px_1fr_140px_140px_140px] items-center gap-2 border-b border-[color:var(--color-border)] px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-fg-muted)]">
       <div />
-      <div>Category</div>
+      <div>Bucket List</div>
       <div className="text-right">Assigned</div>
       <div className="text-right">Activity</div>
       <div className="text-right">Available</div>
@@ -198,8 +198,8 @@ function GroupBlock({
             {cats.length === 0 ? (
               <li className="px-4 py-3 text-xs text-[color:var(--color-fg-muted)]">
                 {filterActive
-                  ? 'No categories match this filter.'
-                  : 'No categories in this group yet.'}
+                  ? 'No bucket lists match this filter.'
+                  : 'No bucket lists in this bucket yet.'}
               </li>
             ) : (
               cats.map((cat) => (

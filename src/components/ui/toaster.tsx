@@ -1,8 +1,10 @@
 import { Toaster as SonnerToaster } from 'sonner';
 import { useTheme } from '@/app/use-theme';
+import { useLargeScreen } from '@/hooks/use-large-screen';
 
 export function Toaster() {
   const { resolved } = useTheme();
+  const isLarge = useLargeScreen();
   return (
     <SonnerToaster
       theme={resolved}
@@ -18,8 +20,9 @@ export function Toaster() {
           boxShadow: 'var(--shadow-md)',
         },
       }}
-      className="sm:!top-4 sm:!right-4 sm:!bottom-auto sm:!left-auto"
-      position="bottom-center"
+      position={isLarge ? 'top-right' : 'bottom-center'}
+      offset={24}
+      mobileOffset={16}
     />
   );
 }

@@ -27,7 +27,7 @@ export function BudgetToolbar({
     <div className="flex flex-wrap items-center gap-1">
       <ToolbarButton
         icon={<Plus size={14} strokeWidth={2} aria-hidden />}
-        label="Category Group"
+        label="Bucket"
         onClick={onCreateGroup}
       />
 

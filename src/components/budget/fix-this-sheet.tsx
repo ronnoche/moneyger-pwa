@@ -74,15 +74,15 @@ export function FixThisSheet({ open, onOpenChange, viewedMonth }: Props) {
       title="Fix over-assigned budget"
       description={
         atb < 0
-          ? `You've assigned ${formatOver(overage)} more than you have. Pull money back from categories with a positive Budgeted this month.`
+          ? `You've assigned ${formatOver(overage)} more than you have. Pull money back from bucket lists with a positive Budgeted this month.`
           : 'Nothing to fix right now.'
       }
     >
       <div className="max-h-[60vh] space-y-2 overflow-y-auto pb-2">
         {rows.length === 0 && (
           <div className="rounded-lg bg-[color:var(--color-surface-2)] p-4 text-sm text-[color:var(--color-fg-muted)]">
-            No categories with positive Budgeted this month to pull from. You may
-            need to receive income or move from a category's Available balance.
+            No bucket lists with positive Budgeted this month to pull from. You
+            may need to receive income or move from a bucket list's Available balance.
           </div>
         )}
 

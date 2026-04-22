@@ -108,13 +108,13 @@ export default function SettingsCategories() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
-      <PageHeader title="Categories" backTo="/settings" />
+      <PageHeader title="Bucket Lists" backTo="/settings" />
 
       {groups === undefined ? (
         <p className="text-sm text-ink-500">Loading...</p>
       ) : groups.length === 0 ? (
         <p className="text-sm text-ink-500">
-          Create a group first, then add categories.
+          Create a bucket first, then add bucket lists.
         </p>
       ) : (
         <ul className="space-y-4">
@@ -138,7 +138,7 @@ export default function SettingsCategories() {
                 </div>
                 {inGroup.length === 0 ? (
                   <p className="rounded-xl bg-white px-4 py-3 text-sm text-ink-400 dark:bg-ink-800">
-                    No categories
+                    No bucket lists
                   </p>
                 ) : (
                   <ul className="divide-y divide-ink-200 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-ink-700 dark:bg-ink-800">
@@ -177,7 +177,7 @@ export default function SettingsCategories() {
       <Sheet
         open={editOpen}
         onOpenChange={setEditOpen}
-        title={editingId ? 'Edit category' : 'New category'}
+        title={editingId ? 'Edit bucket list' : 'New bucket list'}
       >
         <form
           onSubmit={(e) => {

@@ -89,7 +89,7 @@ export function TransactionFilterSheet({
         </section>
 
         <section>
-          <Label>Category</Label>
+          <Label>Bucket List</Label>
           <ChipRow>
             <Chip
               active={local.categoryId === ''}

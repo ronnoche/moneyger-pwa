@@ -4,9 +4,8 @@ import { Tag, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { inputClass } from '@/components/ui/field';
 import { PageHeader } from '@/components/layout/page-header';
-import { Numpad } from '@/components/ui/numpad';
 import { ConfirmSheet } from '@/components/ui/confirm-sheet';
-import { HeroAmount } from '@/components/transactions/hero-amount';
+import { AmountField } from '@/components/transactions/amount-field';
 import { DirectionPill } from '@/components/transactions/direction-pill';
 import { PickerCard } from '@/components/transactions/picker-card';
 import { DetailsPanel } from '@/components/transactions/details-panel';
@@ -74,7 +73,7 @@ export function TransactionForm({
   function validate(): boolean {
     const next: { [k: string]: string } = {};
     if (!amount || amount <= 0) next.amount = 'Enter an amount greater than zero';
-    if (!categoryId) next.category = 'Pick a category';
+    if (!categoryId) next.category = 'Pick a bucket list';
     if (!accountId) next.account = 'Pick an account';
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) next.date = 'Pick a date';
     setErrors(next);
@@ -147,13 +146,18 @@ export function TransactionForm({
         />
       </div>
 
-      <div className="flex-1 space-y-4 px-4 pb-[25rem]">
+      <div className="flex-1 space-y-4 px-4 pb-6">
         <div className="flex justify-center">
           <DirectionPill value={direction} onChange={setDirection} />
         </div>
 
         <div className="pt-2">
-          <HeroAmount value={amount} direction={direction} />
+          <AmountField
+            value={amount}
+            onChange={setAmount}
+            direction={direction}
+            size="large"
+          />
           {errors.amount && (
             <p className="mt-1 text-center text-xs text-[color:var(--color-danger-600)]">
               {errors.amount}
@@ -171,16 +175,16 @@ export function TransactionForm({
             error={errors.account}
           />
           <PickerCard
-            label="Category"
+            label="Bucket List"
             value={categoryLabel}
-            placeholder="Pick category"
+            placeholder="Pick bucket list"
             icon={Tag}
             onClick={() => setCategoryOpen(true)}
             error={errors.category}
           />
         </div>
 
-        <DetailsPanel summary={summary}>
+        <DetailsPanel summary={summary} defaultOpen>
           <div>
             <label
               htmlFor="txn-date"
@@ -244,22 +248,11 @@ export function TransactionForm({
               maxLength={200}
             />
           </div>
-        </DetailsPanel>
-      </div>
 
-      <div className="safe-pb fixed inset-x-0 bottom-0 z-30 border-t border-[color:var(--color-border)] bg-[color:var(--color-bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[color:var(--color-bg)]/80">
-        <div className="mx-auto max-w-xl">
-          <Numpad value={amount} onChange={setAmount} />
-          <div className="px-3 pb-3 pt-1">
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              loading={submitting}
-            >
-              {submitLabel}
-            </Button>
-          </div>
-        </div>
+          <Button className="w-full" onClick={handleSubmit} loading={submitting}>
+            {submitLabel}
+          </Button>
+        </DetailsPanel>
       </div>
 
       <CategorySheet
@@ -288,7 +281,7 @@ export function TransactionForm({
           open={confirmDelete}
           onOpenChange={setConfirmDelete}
           title="Delete this transaction?"
-          description="This removes the transaction from its account and category math. You can undo for a few seconds."
+          description="This removes the transaction from its account and bucket list math. You can undo for a few seconds."
           confirmLabel="Delete"
           destructive
           onConfirm={handleDelete}

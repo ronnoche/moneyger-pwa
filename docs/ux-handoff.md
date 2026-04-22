@@ -418,7 +418,7 @@ Each entry documents: purpose, when user lands here, key info displayed, afforda
   - Deleting an edit-target prompts a native confirm dialog
   - Form navigates back on success (`navigate(-1)`)
 - **Design opportunity:**
-  - Put amount above direction toggle? A huge numeric keypad is common in best-in-class finance apps (Copilot, YNAB). A dedicated numeric keypad could replace the system keyboard
+  - Put amount above direction toggle as a hero display. Tapping the amount focuses a hidden `inputmode="decimal"` field so the platform keypad appears on mobile and a normal keyboard appears on desktop. Do not ship a custom in-app numeric pad: it duplicates the OS keyboard on phones and looks out of place on web
   - Consider making the Account and Category pickers more prominent (cards with current selection visible)
 
 ### 11.5 Move Money (`/budget`)
@@ -740,7 +740,7 @@ Ranked by impact.
 4. **Dashboard hero is ATB only.** Add a month summary strip (Income, Spent, Left to assign)
 5. **No reorder UX.** Groups and categories have `sortOrder` but no drag handle
 6. **Filter panel on Transactions is cramped.** Move to a bottom sheet with pill-style chips and a summary of active filters
-7. **Transaction form lacks hierarchy.** Amount should be hero. Consider a numeric keypad layout
+7. **Transaction form lacks hierarchy.** Amount should be hero. Use the native platform keyboard via `inputmode="decimal"` on a hidden input behind the hero display rather than a bespoke in-app numpad
 8. **Confirm dialogs use native `confirm()`.** Replace with themed confirmation sheets
 9. **No toasts or undo.** Swipe-to-delete is destructive. Add Undo for 5 seconds
 10. **Spending tab bar color.** The red `danger-500` bar next to a green amount is confusing; unify to one of the two meaning systems described in #1

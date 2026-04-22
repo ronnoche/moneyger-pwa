@@ -56,7 +56,7 @@ export default function SettingsData() {
 
   async function handleReset() {
     const confirmed = confirm(
-      'Reset all data? Every group, category, account, transaction, and net worth entry will be deleted. This cannot be undone.',
+      'Reset all data? Every bucket, bucket list, account, transaction, and net worth entry will be deleted. This cannot be undone.',
     );
     if (!confirmed) return;
     setBusy(true);

@@ -56,7 +56,7 @@ export function ReadyToAssignPill({ viewedMonth, onPresetApplied }: Props) {
       ? 'bg-[color:var(--color-positive-bg)] text-[color:var(--color-positive)]'
       : state === 'negative'
         ? 'bg-[color:var(--color-danger-bg)] text-[color:var(--color-danger-600)]'
-        : 'bg-[color:var(--color-ink-100)] text-[color:var(--color-fg)]';
+        : 'bg-[color:var(--color-ink-100)] text-[color:var(--color-fg)] dark:bg-[color:var(--color-surface-2)]';
 
   const subCopy =
     state === 'zero'

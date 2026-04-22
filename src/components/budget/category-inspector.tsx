@@ -333,7 +333,7 @@ function AutoAssignSection({
       <AutoAssignPanel
         viewedMonth={viewMonth}
         scopedCategoryIds={[cat.id]}
-        heading="Apply to this category"
+        heading="Apply to this bucket list"
       />
     </Collapsible>
   );

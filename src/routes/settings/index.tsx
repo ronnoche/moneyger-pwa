@@ -32,7 +32,7 @@ export default function Settings() {
         <Row
           to="/settings/categories"
           icon={Tags}
-          label="Categories"
+          label="Bucket Lists"
           detail={String(categories?.length ?? 0)}
         />
         <Row

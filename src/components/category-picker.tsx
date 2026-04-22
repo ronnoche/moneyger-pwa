@@ -24,7 +24,7 @@ export function CategoryPicker({
   onChange,
   includeAvailableToBudget = true,
   id,
-  placeholder = 'Pick a category',
+  placeholder = 'Pick a bucket list',
 }: CategoryPickerProps) {
   const [open, setOpen] = useState(false);
 
@@ -129,7 +129,7 @@ export function CategorySheet({
         onOpenChange(next);
         if (!next) setQuery('');
       }}
-      title="Pick a category"
+      title="Pick a bucket list"
     >
         <div className="sticky top-0 z-10 bg-[color:var(--color-surface)] pb-2">
           <div className="relative">
@@ -142,7 +142,7 @@ export function CategorySheet({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search categories"
+              placeholder="Search bucket lists"
               className="w-full h-11 pl-9 pr-3 rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-bg)] text-[color:var(--color-fg)] focus:outline-none focus:border-[color:var(--color-brand-600)]"
               autoFocus
             />
@@ -190,7 +190,7 @@ export function CategorySheet({
               ))}
               {filteredCats.length === 0 && (
                 <p className="p-4 text-sm text-[color:var(--color-fg-muted)]">
-                  No categories match &ldquo;{query}&rdquo;.
+                  No bucket lists match &ldquo;{query}&rdquo;.
                 </p>
               )}
             </ul>
@@ -222,7 +222,7 @@ export function CategorySheet({
 
           {(!groups || groups.length === 0) && !q && (
             <p className="p-4 text-sm text-[color:var(--color-fg-muted)]">
-              No categories yet. Add some from Settings.
+              No bucket lists yet. Add some from Settings.
             </p>
           )}
         </div>

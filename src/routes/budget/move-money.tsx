@@ -4,10 +4,9 @@ import { useCategories, useTransactions, useTransfers } from '@/db/hooks';
 import { createTransfer } from '@/features/transfers/repo';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { Numpad } from '@/components/ui/numpad';
 import { inputClass } from '@/components/ui/field';
 import { CategorySheet } from '@/components/category-picker';
-import { HeroAmount } from '@/components/transactions/hero-amount';
+import { AmountField } from '@/components/transactions/amount-field';
 import { DetailsPanel } from '@/components/transactions/details-panel';
 import { FromToCards } from '@/components/budget/from-to-cards';
 import { QuickAmountChips, type QuickChip } from '@/components/budget/quick-amount-chips';
@@ -146,9 +145,9 @@ export default function MoveMoney() {
         <PageHeader title="Move Money" backTo=".." />
       </div>
 
-      <div className="flex-1 space-y-4 px-4 pb-[23rem]">
+      <div className="flex-1 space-y-4 px-4 pb-28">
         <div className="pt-2">
-          <HeroAmount value={amount} direction="inflow" />
+          <AmountField value={amount} onChange={setAmount} direction="inflow" />
           {errors.amount && (
             <p className="mt-1 text-center text-xs text-[color:var(--color-danger-600)]">
               {errors.amount}
@@ -212,17 +211,14 @@ export default function MoveMoney() {
       </div>
 
       <div className="safe-pb fixed inset-x-0 bottom-0 z-30 border-t border-[color:var(--color-border)] bg-[color:var(--color-bg)]/95 backdrop-blur supports-[backdrop-filter]:bg-[color:var(--color-bg)]/80">
-        <div className="mx-auto max-w-xl">
-          <Numpad value={amount} onChange={setAmount} />
-          <div className="px-3 pb-3 pt-1">
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              loading={submitting}
-            >
-              Move money
-            </Button>
-          </div>
+        <div className="mx-auto max-w-xl px-3 pb-3 pt-3">
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            loading={submitting}
+          >
+            Move money
+          </Button>
         </div>
       </div>
 
