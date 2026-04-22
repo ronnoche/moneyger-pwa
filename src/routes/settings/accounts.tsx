@@ -1,24 +1,63 @@
 import { useState } from 'react';
 import { useAccounts } from '@/db/hooks';
-import { archiveAccount, createAccount } from '@/features/accounts/repo';
+import {
+  AccountHasTransactionsError,
+  archiveAccount,
+  createAccount,
+} from '@/features/accounts/repo';
 import { Button } from '@/components/ui/button';
 import { Field, inputClass } from '@/components/ui/field';
+import { MoneyInput } from '@/components/money-input';
 import { SwipeRow } from '@/components/swipe-row';
 import { PageHeader } from '@/components/layout/page-header';
+import { parseMoneyInput } from '@/lib/format';
+import { toast } from '@/lib/toast';
 import { cn } from '@/lib/cn';
 
 export default function SettingsAccounts() {
   const accounts = useAccounts();
   const [name, setName] = useState('');
   const [isCreditCard, setIsCreditCard] = useState(false);
+  const [balance, setBalance] = useState('');
+
+  const balanceLabel = isCreditCard ? 'Current balance owed' : 'Current balance';
+  const balanceHelp = isCreditCard
+    ? 'How much you currently owe on this card. Enter 0 if paid off.'
+    : 'How much is in this account right now. Enter 0 if empty.';
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    await createAccount({ name: trimmed, isCreditCard });
+    if (balance.trim() === '') {
+      toast.error('Enter the current balance.');
+      return;
+    }
+    const parsed = parseMoneyInput(balance);
+    if (!Number.isFinite(parsed)) {
+      toast.error('Invalid balance.');
+      return;
+    }
+    const openingBalance = isCreditCard ? -Math.abs(parsed) : parsed;
+    await createAccount({ name: trimmed, isCreditCard, openingBalance });
     setName('');
     setIsCreditCard(false);
+    setBalance('');
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await archiveAccount(id);
+    } catch (err) {
+      if (err instanceof AccountHasTransactionsError) {
+        toast.error(
+          'Delete this account’s transactions first, then delete the account.',
+          `${err.count} transaction${err.count === 1 ? '' : 's'} still linked.`,
+        );
+        return;
+      }
+      throw err;
+    }
   }
 
   return (
@@ -45,7 +84,19 @@ export default function SettingsAccounts() {
           />
           Credit card
         </label>
-        <Button type="submit" className="w-full" disabled={!name.trim()}>
+        <Field label={balanceLabel} htmlFor="acct-balance" hint={balanceHelp}>
+          <MoneyInput
+            id="acct-balance"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+            placeholder="0.00"
+          />
+        </Field>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={!name.trim() || balance.trim() === ''}
+        >
           Add account
         </Button>
       </form>
@@ -58,7 +109,7 @@ export default function SettingsAccounts() {
         <ul className="divide-y divide-ink-200 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-ink-700 dark:bg-ink-800">
           {accounts.map((acct) => (
             <li key={acct.id}>
-              <SwipeRow onDelete={() => archiveAccount(acct.id)}>
+              <SwipeRow onDelete={() => handleDelete(acct.id)}>
                 <div className="flex items-center justify-between px-4 py-3 text-sm">
                   <span>{acct.name}</span>
                   <span

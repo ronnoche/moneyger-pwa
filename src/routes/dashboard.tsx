@@ -149,12 +149,12 @@ export default function Dashboard() {
 
       {groups.length === 0 ? (
         <EmptyState
-          kind="envelopes"
-          title="No groups yet"
+          kind="buckets"
+          title="No buckets yet"
           description="Bundle related bucket lists together. Monthly Bills, Savings, Fun Money."
           action={
             <Link to="/settings/groups">
-              <Button size="sm">Create a group</Button>
+              <Button size="sm">Create a bucket</Button>
             </Link>
           }
         />

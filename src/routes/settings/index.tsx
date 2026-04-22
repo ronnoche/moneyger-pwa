@@ -26,7 +26,7 @@ export default function Settings() {
         <Row
           to="/settings/groups"
           icon={FolderTree}
-          label="Groups"
+          label="Buckets"
           detail={String(groups?.length ?? 0)}
         />
         <Row

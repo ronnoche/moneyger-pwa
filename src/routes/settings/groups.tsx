@@ -33,10 +33,10 @@ export default function SettingsGroups() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
-      <PageHeader title="Groups" backTo="/settings" />
+      <PageHeader title="Buckets" backTo="/settings" />
 
       <form onSubmit={handleAdd} className="mb-6 space-y-2">
-        <Field label="New group" htmlFor="group-name">
+        <Field label="New bucket" htmlFor="group-name">
           <div className="flex gap-2">
             <input
               id="group-name"
@@ -56,7 +56,7 @@ export default function SettingsGroups() {
       {groups === undefined ? (
         <p className="text-sm text-ink-500">Loading...</p>
       ) : groups.length === 0 ? (
-        <p className="text-sm text-ink-500">No groups yet.</p>
+        <p className="text-sm text-ink-500">No buckets yet.</p>
       ) : (
         <ul className="divide-y divide-ink-200 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-ink-700 dark:bg-ink-800">
           {groups.map((group) => (

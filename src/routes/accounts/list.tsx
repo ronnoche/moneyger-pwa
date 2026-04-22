@@ -11,7 +11,10 @@ import { SkeletonRows } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SwipeRow } from '@/components/swipe-row';
 import { Button } from '@/components/ui/button';
-import { archiveAccount } from '@/features/accounts/repo';
+import {
+  AccountHasTransactionsError,
+  archiveAccount,
+} from '@/features/accounts/repo';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/cn';
 
@@ -78,8 +81,19 @@ export default function AccountsList() {
                       icon: Archive,
                       tone: 'neutral',
                       onInvoke: async () => {
-                        await archiveAccount(acct.id);
-                        toast.success(`${acct.name} archived`);
+                        try {
+                          await archiveAccount(acct.id);
+                          toast.success(`${acct.name} archived`);
+                        } catch (err) {
+                          if (err instanceof AccountHasTransactionsError) {
+                            toast.error(
+                              'Delete this account’s transactions first, then archive.',
+                              `${err.count} transaction${err.count === 1 ? '' : 's'} still linked.`,
+                            );
+                            return;
+                          }
+                          throw err;
+                        }
                       },
                     },
                   ]}

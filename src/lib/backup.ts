@@ -1,4 +1,5 @@
 import { db } from '@/db/db';
+import { clearOnboarding } from '@/lib/onboarding';
 import type {
   Account,
   Category,
@@ -123,6 +124,7 @@ export async function resetAllData(): Promise<void> {
       ]);
     },
   );
+  clearOnboarding();
 }
 
 function coerceBackup(raw: unknown): BackupFile {

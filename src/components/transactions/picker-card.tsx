@@ -11,6 +11,7 @@ interface PickerCardProps {
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   onClick: () => void;
   error?: string;
+  disabled?: boolean;
 }
 
 export function PickerCard({
@@ -20,22 +21,27 @@ export function PickerCard({
   icon: Icon,
   onClick,
   error,
+  disabled = false,
 }: PickerCardProps) {
   const empty = !value;
   return (
     <motion.button
       type="button"
+      disabled={disabled}
+      aria-disabled={disabled}
       onClick={() => {
+        if (disabled) return;
         haptics.light();
         onClick();
       }}
-      whileTap={{ scale: 0.98 }}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
       transition={spring.snappy}
       className={cn(
         'flex w-full flex-col items-start gap-1 rounded-xl border bg-[color:var(--color-surface)] px-3 py-2.5 text-left',
         error
           ? 'border-[color:var(--color-danger-600)]'
           : 'border-[color:var(--color-border)]',
+        disabled && 'cursor-not-allowed opacity-70',
       )}
     >
       <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-fg-muted)]">

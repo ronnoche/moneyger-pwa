@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Tag, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { AccountSheet } from '@/components/account-sheet';
 import { useCategoryLabel } from '@/hooks/use-category-label';
 import { useAccountLabel } from '@/hooks/use-account-label';
 import type { TransactionFormValues } from '@/features/transactions/schema';
+import { AVAILABLE_TO_BUDGET } from '@/lib/budget-math';
 import { toast } from '@/lib/toast';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
@@ -61,6 +62,17 @@ export function TransactionForm({
 
   const categoryLabel = useCategoryLabel(categoryId);
   const accountLabel = useAccountLabel(accountId);
+
+  useEffect(() => {
+    if (direction === 'inflow') {
+      if (categoryId !== AVAILABLE_TO_BUDGET) {
+        setCategoryId(AVAILABLE_TO_BUDGET);
+        setErrors((e) => ({ ...e, category: '' }));
+      }
+    } else if (categoryId === AVAILABLE_TO_BUDGET) {
+      setCategoryId('');
+    }
+  }, [direction, categoryId]);
 
   const summary = useMemo(() => {
     const parts: string[] = [];
@@ -181,6 +193,7 @@ export function TransactionForm({
             icon={Tag}
             onClick={() => setCategoryOpen(true)}
             error={errors.category}
+            disabled={direction === 'inflow'}
           />
         </div>
 
@@ -263,7 +276,7 @@ export function TransactionForm({
           setCategoryId(id);
           setErrors((e) => ({ ...e, category: '' }));
         }}
-        includeAvailableToBudget
+        includeAvailableToBudget={false}
       />
 
       <AccountSheet

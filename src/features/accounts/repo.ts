@@ -1,9 +1,21 @@
-import { db, newId } from '@/db/db';
-import type { Account } from '@/db/schema';
+import { db, newId, nowISO } from '@/db/db';
+import type { Account, Transaction } from '@/db/schema';
+import { AVAILABLE_TO_BUDGET } from '@/lib/budget-math';
 
 export interface AccountInput {
   name: string;
   isCreditCard: boolean;
+  openingBalance: number;
+}
+
+export class AccountHasTransactionsError extends Error {
+  readonly count: number;
+
+  constructor(count: number) {
+    super(`Account has ${count} transaction(s) and cannot be deleted.`);
+    this.name = 'AccountHasTransactionsError';
+    this.count = count;
+  }
 }
 
 export async function createAccount(input: AccountInput): Promise<Account> {
@@ -13,8 +25,34 @@ export async function createAccount(input: AccountInput): Promise<Account> {
     isCreditCard: input.isCreditCard,
     isArchived: false,
   };
-  await db.accounts.add(account);
+  const balance = round2(input.openingBalance);
+
+  await db.transaction('rw', db.accounts, db.transactions, async () => {
+    await db.accounts.add(account);
+    if (balance !== 0) {
+      const now = nowISO();
+      const seed: Transaction = {
+        id: newId(),
+        date: now.slice(0, 10),
+        outflow: balance < 0 ? -balance : 0,
+        inflow: balance > 0 ? balance : 0,
+        categoryId: AVAILABLE_TO_BUDGET,
+        accountId: account.id,
+        memo: 'Opening balance',
+        status: 'cleared',
+        createdAt: now,
+        updatedAt: now,
+        syncedAt: null,
+      };
+      await db.transactions.add(seed);
+    }
+  });
+
   return account;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 export async function updateAccount(
@@ -24,6 +62,12 @@ export async function updateAccount(
   await db.accounts.update(id, patch);
 }
 
+export async function accountTransactionCount(id: string): Promise<number> {
+  return db.transactions.where('accountId').equals(id).count();
+}
+
 export async function archiveAccount(id: string): Promise<void> {
+  const count = await accountTransactionCount(id);
+  if (count > 0) throw new AccountHasTransactionsError(count);
   await db.accounts.update(id, { isArchived: true });
 }
