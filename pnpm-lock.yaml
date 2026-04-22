@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@hookform/resolvers':
         specifier: ^5.2.2
-        version: 5.2.2(react-hook-form@7.73.0(react@19.2.5))
+        version: 5.2.2(react-hook-form@7.73.1(react@19.2.5))
       '@radix-ui/react-context-menu':
         specifier: ^2.2.16
         version: 2.2.16(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -54,8 +54,8 @@ importers:
         specifier: ^19.2.0
         version: 19.2.5(react@19.2.5)
       react-hook-form:
-        specifier: ^7.73.0
-        version: 7.73.0(react@19.2.5)
+        specifier: ^7.73.1
+        version: 7.73.1(react@19.2.5)
       react-hotkeys-hook:
         specifier: ^5.2.4
         version: 5.2.4(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -2737,8 +2737,8 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-  jsonfile@6.2.0:
-    resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
+  jsonfile@6.2.1:
+    resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
 
   jsonpointer@5.0.1:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
@@ -3082,8 +3082,8 @@ packages:
     peerDependencies:
       react: ^19.2.5
 
-  react-hook-form@7.73.0:
-    resolution: {integrity: sha512-szMDmUWlN587lk1CKbxKEn0OHE43lniV2EbmeSEiaeoEEpq+U/2IAUbm+WV019PRDWG0pMy35GF2t5S6I+PGpQ==}
+  react-hook-form@7.73.1:
+    resolution: {integrity: sha512-VAfVYOPcx3piiEVQy95vyFmBwbVUsP/AUIN+mpFG8h11yshDd444nn0VyfaGWSRnhOLVgiDu7HIuBtAIzxn9dA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -3228,8 +3228,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  safe-array-concat@1.1.3:
-    resolution: {integrity: sha512-AURm5f0jYEOydBj7VQlVvDrjeFgthDdEF5H1dP+6mNpoXOMo1quQqJ4wvJDyRZ9+pO3kGWoOdmV08cSv2aJV6Q==}
+  safe-array-concat@1.1.4:
+    resolution: {integrity: sha512-wtZlHyOje6OZTGqAoaDKxFkgRtkF9CnHAVnCHKfuj200wAgL+bSJhdsCD2l0Qx/2ekEXjPWcyKkfGb5CPboslg==}
     engines: {node: '>=0.4'}
 
   safe-buffer@5.2.1:
@@ -4659,10 +4659,10 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hookform/resolvers@5.2.2(react-hook-form@7.73.0(react@19.2.5))':
+  '@hookform/resolvers@5.2.2(react-hook-form@7.73.1(react@19.2.5))':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.73.0(react@19.2.5)
+      react-hook-form: 7.73.1(react@19.2.5)
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -5944,7 +5944,7 @@ snapshots:
       object.assign: 4.1.7
       own-keys: 1.0.1
       regexp.prototype.flags: 1.5.4
-      safe-array-concat: 1.1.3
+      safe-array-concat: 1.1.4
       safe-push-apply: 1.0.0
       safe-regex-test: 1.1.0
       set-proto: 1.0.0
@@ -6166,7 +6166,7 @@ snapshots:
     dependencies:
       at-least-node: 1.0.0
       graceful-fs: 4.2.11
-      jsonfile: 6.2.0
+      jsonfile: 6.2.1
       universalify: 2.0.1
 
   fsevents@2.3.3:
@@ -6471,7 +6471,7 @@ snapshots:
 
   json5@2.2.3: {}
 
-  jsonfile@6.2.0:
+  jsonfile@6.2.1:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
@@ -6709,7 +6709,7 @@ snapshots:
       react: 19.2.5
       scheduler: 0.27.0
 
-  react-hook-form@7.73.0(react@19.2.5):
+  react-hook-form@7.73.1(react@19.2.5):
     dependencies:
       react: 19.2.5
 
@@ -6888,7 +6888,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.60.1
       fsevents: 2.3.3
 
-  safe-array-concat@1.1.3:
+  safe-array-concat@1.1.4:
     dependencies:
       call-bind: 1.0.9
       call-bound: 1.0.4
