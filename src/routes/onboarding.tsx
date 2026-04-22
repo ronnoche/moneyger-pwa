@@ -206,7 +206,7 @@ export default function Onboarding() {
               accountBalance.trim() === ''
             }
           >
-            Record your first income
+            Record your first transaction
           </Button>
         )}
       </div>
