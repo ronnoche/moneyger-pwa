@@ -15,14 +15,14 @@ const commonProps: SVGProps<SVGSVGElement> = {
 
 const DOT = 'fill-[color:var(--color-brand-500)]';
 
-export function EnvelopesIllustration(props: Props) {
+export function BucketsIllustration(props: Props) {
   return (
     <svg {...commonProps} className="text-[color:var(--color-ink-400)]" {...props}>
-      <rect x="24" y="56" width="96" height="60" rx="4" />
-      <path d="M24 60 L72 96 L120 60" />
-      <rect x="40" y="40" width="96" height="60" rx="4" />
-      <path d="M40 44 L88 80 L136 44" />
-      <circle cx="132" cy="44" r="5" className={DOT} stroke="none" />
+      <ellipse cx="80" cy="56" rx="44" ry="14" />
+      <path d="M124 56 L112 128 C102 136 58 136 48 128 L36 56" />
+      <path d="M36 56 C36 32 56 16 80 16 C104 16 124 32 124 56" />
+      <path d="M88 20 L72 20 C68 20 66 18 66 16 C66 14 68 12 72 12 L88 12 C92 12 94 14 94 16 C94 18 92 20 88 20 Z" />
+      <circle cx="118" cy="50" r="5" className={DOT} stroke="none" />
     </svg>
   );
 }

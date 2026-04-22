@@ -39,11 +39,11 @@ export function RootLayout() {
     return <SplashScreen />;
   }
 
-  if (isEmpty && !onOnboarding && !onSettings) {
+  if (isEmpty && !onOnboarding && !onSettings && !isOnboardingComplete()) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  if (onOnboarding && !isEmpty && isOnboardingComplete()) {
+  if (onOnboarding && isOnboardingComplete()) {
     return <Navigate to="/" replace />;
   }
 

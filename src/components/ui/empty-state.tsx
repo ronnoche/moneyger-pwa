@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import {
-  EnvelopesIllustration,
+  BucketsIllustration,
   ReceiptIllustration,
   CoinPurseIllustration,
   MountainIllustration,
@@ -9,7 +9,7 @@ import {
 } from '@/components/illustrations/empty-state-illustrations';
 
 export type EmptyStateKind =
-  | 'envelopes'
+  | 'buckets'
   | 'receipt'
   | 'coin-purse'
   | 'mountain'
@@ -24,7 +24,7 @@ interface EmptyStateProps {
 }
 
 const illustrations: Record<EmptyStateKind, React.ComponentType> = {
-  envelopes: EnvelopesIllustration,
+  buckets: BucketsIllustration,
   receipt: ReceiptIllustration,
   'coin-purse': CoinPurseIllustration,
   mountain: MountainIllustration,

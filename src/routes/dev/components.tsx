@@ -150,10 +150,10 @@ export default function DevComponents() {
       <Section title="EmptyState illustrations">
         <div className="grid gap-6 sm:grid-cols-2">
           <EmptyState
-            kind="envelopes"
+            kind="buckets"
             title="No bucket lists yet"
             description="Set up buckets and bucket lists to start budgeting."
-            action={<Button size="sm">Add a group</Button>}
+            action={<Button size="sm">Add a bucket</Button>}
           />
           <EmptyState
             kind="receipt"
