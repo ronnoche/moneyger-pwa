@@ -6,6 +6,10 @@
   NODE_VERSION = "22"
   PNPM_VERSION = "9.15.9"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 [[headers]]
   for = "/sw.js"
   [headers.values]

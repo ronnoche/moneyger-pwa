@@ -57,3 +57,36 @@ See `src/db/schema.ts`. All category goals use a discriminated `goalType` field:
 
 No seed data. The app redirects to `/onboarding` until the user creates at
 least one group, one category, and one account.
+
+## Google Auth + Sheets Sync
+
+The app now supports syncing backup records into Google Sheets through a
+Netlify Function at `/.netlify/functions/sheets-sync`.
+
+### 1) Google Cloud setup
+
+- Create or use a Google Cloud project
+- Enable `Google Sheets API`
+- Configure `OAuth consent screen`
+- Create an OAuth `Web application` client for your site domains
+- Create a service account and generate a JSON key
+- Share the target Google Sheet with the service account email (Editor)
+
+### 2) Environment variables
+
+Set these in Netlify and local `.env` for testing:
+
+- `VITE_GOOGLE_CLIENT_ID` (frontend OAuth client id)
+- `GOOGLE_CLIENT_ID` (same OAuth client id, used by server token checks)
+- `GOOGLE_SHEETS_ID` (spreadsheet id from the sheet URL)
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (keep `\n` in the value)
+- `GOOGLE_SHEETS_TAB` (optional, default `Records`)
+- `GOOGLE_ALLOWED_EMAILS` (optional comma-separated allowlist)
+
+### 3) App flow
+
+- Open `Settings -> Data`
+- Sign in with Google
+- Click `Sync to Google Sheets`
+- Each sync appends one row per record to the configured sheet tab
