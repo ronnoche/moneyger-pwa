@@ -1,5 +1,11 @@
 import { Link } from 'react-router';
-import { ChevronRight, Wallet, Settings as SettingsIcon } from 'lucide-react';
+import {
+  ChevronRight,
+  FolderTree,
+  Tags,
+  Wallet,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export default function More() {
@@ -7,6 +13,8 @@ export default function More() {
     <div className="mx-auto max-w-xl px-4 py-4">
       <h1 className="mb-4 text-lg font-semibold">More</h1>
       <ul className="divide-y divide-ink-200 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-ink-700 dark:bg-ink-800">
+        <MoreRow to="/settings/groups" icon={FolderTree} label="Buckets" />
+        <MoreRow to="/settings/categories" icon={Tags} label="Bucket Lists" />
         <MoreRow to="/accounts" icon={Wallet} label="Accounts" />
         <MoreRow to="/settings" icon={SettingsIcon} label="Settings" />
       </ul>

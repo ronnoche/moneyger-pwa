@@ -7,6 +7,7 @@ export type BudgetViewMode = 'list' | 'block';
 interface Props {
   viewMode: BudgetViewMode;
   onViewModeChange: (next: BudgetViewMode) => void;
+  onCreateCategory: () => void;
   onCreateGroup: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -17,6 +18,7 @@ interface Props {
 export function BudgetToolbar({
   viewMode,
   onViewModeChange,
+  onCreateCategory,
   onCreateGroup,
   onUndo,
   onRedo,
@@ -25,6 +27,12 @@ export function BudgetToolbar({
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-1">
+      <ToolbarButton
+        icon={<Plus size={14} strokeWidth={2} aria-hidden />}
+        label="Bucket List"
+        onClick={onCreateCategory}
+      />
+
       <ToolbarButton
         icon={<Plus size={14} strokeWidth={2} aria-hidden />}
         label="Bucket"

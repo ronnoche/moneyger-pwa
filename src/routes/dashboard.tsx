@@ -140,6 +140,7 @@ export default function Dashboard() {
       <BudgetToolbar
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        onCreateCategory={() => navigate('/settings/categories')}
         onCreateGroup={() => navigate('/settings/groups')}
       />
 
