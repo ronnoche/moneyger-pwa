@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { HeroAmount } from './hero-amount';
 
 interface AmountFieldProps {
@@ -29,13 +29,6 @@ export function AmountField({
 }: AmountFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [raw, setRaw] = useState<string>(() => (value > 0 ? value.toFixed(2) : ''));
-
-  useEffect(() => {
-    const currentParsed = raw === '' ? 0 : Number(raw);
-    if (!Number.isFinite(currentParsed) || Math.abs(currentParsed - value) > 0.0001) {
-      setRaw(value > 0 ? value.toFixed(2) : '');
-    }
-  }, [value, raw]);
 
   function handleInput(next: string) {
     const cleaned = normalize(next);

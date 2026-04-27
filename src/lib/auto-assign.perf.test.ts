@@ -21,10 +21,13 @@ function buildFixture(): PresetInput {
             : goalRotate === 2
               ? 'custom'
               : 'none',
+      goalBehavior: goalRotate === 3 ? null : 'set_aside_another',
       goalAmount: goalRotate === 3 ? 0 : 100 + i,
       goalDueDate: goalRotate === 2 ? '2026-12-01' : null,
       goalRecurring: null,
       goalStartMonth: null,
+      snoozedUntil: null,
+      linkedAccountId: null,
       sortOrder: i,
       isArchived: false,
     });
@@ -46,6 +49,8 @@ function buildFixture(): PresetInput {
       accountId: 'acct-1',
       memo: '',
       status: 'cleared',
+      reconciledAt: null,
+      reconcileEventId: null,
       createdAt: `${dateStr}T00:00:00.000Z`,
       updatedAt: `${dateStr}T00:00:00.000Z`,
       syncedAt: null,
@@ -84,6 +89,7 @@ describe('auto-assign performance', () => {
     'spent_last_month',
     'average_assigned',
     'average_spent',
+    'reduce_overfunding',
     'reset_available',
     'reset_assigned',
   ]) {

@@ -38,7 +38,7 @@ export function AccountSheet({
         <ul className="max-h-[60dvh] overflow-y-auto pb-2">
           {active.map((a) => {
             const selected = value === a.id;
-            const Icon = a.isCreditCard ? CreditCard : Landmark;
+            const Icon = a.accountCategory === 'credit' ? CreditCard : Landmark;
             return (
               <li key={a.id}>
                 <button

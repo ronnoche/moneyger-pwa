@@ -126,7 +126,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <Item
                   key={a.id}
                   icon={
-                    a.isCreditCard ? (
+                    a.accountCategory === 'credit' ? (
                       <CreditCard size={16} strokeWidth={1.75} />
                     ) : (
                       <Landmark size={16} strokeWidth={1.75} />

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronDown, ChevronRight, Pencil, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, X, MoonStar } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import { AvailablePill } from '@/components/budget/available-pill';
@@ -49,7 +50,7 @@ export function CategoryInspector({
   );
 
   const goal = normalizeGoal(cat);
-  const status = goalStatus(goal, available, budgeted, viewMonth);
+  const status = goalStatus(goal, available, budgeted, viewMonth, cat.snoozedUntil);
   const needed = useNeededThisMonth(cat, viewMonth);
 
   return (
@@ -74,9 +75,38 @@ export function CategoryInspector({
       />
 
       <AutoAssignSection cat={cat} viewMonth={viewMonth} />
+      <SnoozeSection cat={cat} viewMonth={viewMonth} />
 
       <NotesSection catId={cat.id} />
     </div>
+  );
+}
+
+function SnoozeSection({ cat, viewMonth }: { cat: Category; viewMonth: Date }) {
+  const snoozeMonth = format(viewMonth, 'yyyy-MM');
+  const snoozed = !!cat.snoozedUntil && cat.snoozedUntil >= snoozeMonth;
+
+  return (
+    <Collapsible title="Snooze" defaultOpen={false}>
+      <div className="flex items-center justify-between rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] px-3 py-2">
+        <div className="flex items-center gap-2 text-sm text-[color:var(--color-fg)]">
+          <MoonStar size={14} strokeWidth={1.75} />
+          <span>{snoozed ? `Snoozed until ${cat.snoozedUntil}` : 'Active this month'}</span>
+        </div>
+        <Button
+          size="sm"
+          variant={snoozed ? 'secondary' : 'primary'}
+          onClick={async () => {
+            await updateCategory(cat.id, {
+              snoozedUntil: snoozed ? null : snoozeMonth,
+            });
+            toast.success(snoozed ? 'Snooze removed' : 'Snoozed for this month');
+          }}
+        >
+          {snoozed ? 'Unsnooze' : 'Snooze'}
+        </Button>
+      </div>
+    </Collapsible>
   );
 }
 
@@ -422,6 +452,8 @@ function statusCopy(
       return 'Fully funded';
     case 'overfunded':
       return `Overfunded by ${formatMoney(Math.max(0, currentAvailable - goalAmount))}`;
+    case 'snoozed':
+      return 'Snoozed this month';
     default:
       return 'Goal set';
   }

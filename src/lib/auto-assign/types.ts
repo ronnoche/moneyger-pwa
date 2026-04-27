@@ -29,5 +29,6 @@ export type PresetId =
   | 'spent_last_month'
   | 'average_assigned'
   | 'average_spent'
+  | 'reduce_overfunding'
   | 'reset_available'
   | 'reset_assigned';

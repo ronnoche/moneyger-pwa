@@ -2,16 +2,19 @@ import { useState } from 'react';
 import { useCategories, useGroups } from '@/db/hooks';
 import {
   archiveCategory,
+  CategoryHasTransactionsError,
   createCategory,
+  rehomeCategoryTransactions,
   updateCategory,
 } from '@/features/categories/repo';
-import type { CategoryType, GoalType } from '@/db/schema';
+import type { CategoryType, GoalBehavior, GoalType } from '@/db/schema';
 import { Button } from '@/components/ui/button';
 import { Field, inputClass } from '@/components/ui/field';
 import { SwipeRow } from '@/components/swipe-row';
 import { MoneyInput } from '@/components/money-input';
 import { PageHeader } from '@/components/layout/page-header';
 import { Sheet } from '@/components/ui/sheet';
+import { CategoryRehomeDialog } from '@/components/category-rehome-dialog';
 import { formatMoney, parseMoneyInput } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -20,8 +23,10 @@ interface FormState {
   name: string;
   type: CategoryType;
   goalType: GoalType;
+  goalBehavior: GoalBehavior;
   goalAmount: string;
   goalDueDate: string;
+  goalRecurring: boolean;
 }
 
 const blankForm = (groupId: string): FormState => ({
@@ -29,8 +34,10 @@ const blankForm = (groupId: string): FormState => ({
   name: '',
   type: 'expense',
   goalType: 'none',
+  goalBehavior: 'set_aside_another',
   goalAmount: '',
   goalDueDate: '',
+  goalRecurring: false,
 });
 
 export default function SettingsCategories() {
@@ -40,6 +47,8 @@ export default function SettingsCategories() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(blankForm(''));
   const [error, setError] = useState<string | null>(null);
+  const [rehomeOpen, setRehomeOpen] = useState(false);
+  const [rehomeSourceId, setRehomeSourceId] = useState<string | null>(null);
 
   function openNew(groupId: string) {
     setEditingId(null);
@@ -57,8 +66,10 @@ export default function SettingsCategories() {
       name: cat.name,
       type: cat.type,
       goalType: cat.goalType,
+      goalBehavior: cat.goalBehavior ?? 'set_aside_another',
       goalAmount: cat.goalAmount ? String(cat.goalAmount) : '',
       goalDueDate: cat.goalDueDate ?? '',
+      goalRecurring: cat.goalRecurring ?? false,
     });
     setError(null);
     setEditOpen(true);
@@ -80,6 +91,14 @@ export default function SettingsCategories() {
       setError('Pick a due date for target-by-date goals');
       return;
     }
+    if (form.goalBehavior === 'have_a_balance_of' && form.goalType !== 'custom') {
+      setError('Have a Balance Of requires custom frequency');
+      return;
+    }
+    if (form.goalBehavior === 'have_a_balance_of' && form.goalRecurring) {
+      setError('Have a Balance Of cannot repeat');
+      return;
+    }
     if (form.goalType !== 'none' && goalAmount <= 0) {
       setError('Goal amount must be greater than zero');
       return;
@@ -90,8 +109,10 @@ export default function SettingsCategories() {
         name,
         type: form.type,
         goalType: form.goalType,
+        goalBehavior: form.goalBehavior,
         goalAmount,
         goalDueDate,
+        goalRecurring: form.goalType === 'none' ? null : form.goalRecurring,
       });
     } else {
       await createCategory({
@@ -99,11 +120,26 @@ export default function SettingsCategories() {
         name,
         type: form.type,
         goalType: form.goalType,
+        goalBehavior: form.goalBehavior,
         goalAmount,
         goalDueDate,
+        goalRecurring: form.goalType === 'none' ? null : form.goalRecurring,
       });
     }
     setEditOpen(false);
+  }
+
+  async function handleArchive(catId: string) {
+    try {
+      await archiveCategory(catId);
+    } catch (err) {
+      if (err instanceof CategoryHasTransactionsError) {
+        setRehomeSourceId(catId);
+        setRehomeOpen(true);
+        return;
+      }
+      throw err;
+    }
   }
 
   return (
@@ -144,7 +180,7 @@ export default function SettingsCategories() {
                   <ul className="divide-y divide-ink-200 overflow-hidden rounded-xl bg-white shadow-sm dark:divide-ink-700 dark:bg-ink-800">
                     {inGroup.map((cat) => (
                       <li key={cat.id}>
-                        <SwipeRow onDelete={() => archiveCategory(cat.id)}>
+                        <SwipeRow onDelete={() => handleArchive(cat.id)}>
                           <button
                             type="button"
                             onClick={() => openEdit(cat.id)}
@@ -218,11 +254,49 @@ export default function SettingsCategories() {
               }
             >
               <option value="none">None</option>
-              <option value="monthly_funding">Monthly funding</option>
-              <option value="target_balance">Target balance</option>
-              <option value="target_by_date">Target by date</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+              <option value="custom">Custom</option>
             </select>
           </Field>
+
+          {form.goalType !== 'none' && (
+            <>
+              <Field label="Behavior" htmlFor="cat-goal-behavior">
+                <select
+                  id="cat-goal-behavior"
+                  className={inputClass}
+                  value={form.goalBehavior}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      goalBehavior: e.target.value as GoalBehavior,
+                    })
+                  }
+                >
+                  <option value="set_aside_another">Set Aside Another</option>
+                  <option value="refill_up_to">Refill Up To</option>
+                  <option value="fill_up_to">Fill Up To</option>
+                  {form.goalType === 'custom' && (
+                    <option value="have_a_balance_of">Have a Balance Of</option>
+                  )}
+                </select>
+              </Field>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 rounded accent-brand-600"
+                  checked={form.goalRecurring}
+                  onChange={(e) =>
+                    setForm({ ...form, goalRecurring: e.target.checked })
+                  }
+                  disabled={form.goalBehavior === 'have_a_balance_of'}
+                />
+                Repeat goal
+              </label>
+            </>
+          )}
 
           {form.goalType !== 'none' && (
             <Field label="Goal amount" htmlFor="cat-amount">
@@ -236,7 +310,7 @@ export default function SettingsCategories() {
             </Field>
           )}
 
-          {form.goalType === 'target_by_date' && (
+          {form.goalType === 'custom' && (
             <Field label="Due date" htmlFor="cat-due">
               <input
                 id="cat-due"
@@ -265,6 +339,19 @@ export default function SettingsCategories() {
           </div>
         </form>
       </Sheet>
+      <CategoryRehomeDialog
+        open={rehomeOpen}
+        onOpenChange={setRehomeOpen}
+        sourceCategoryId={rehomeSourceId}
+        categories={categories ?? []}
+        onConfirm={async (targetCategoryId) => {
+          if (!rehomeSourceId) return;
+          await rehomeCategoryTransactions(rehomeSourceId, targetCategoryId);
+          await updateCategory(rehomeSourceId, { isArchived: true });
+          setRehomeOpen(false);
+          setRehomeSourceId(null);
+        }}
+      />
     </div>
   );
 }
@@ -272,11 +359,13 @@ export default function SettingsCategories() {
 function labelFor(type: CategoryType, goal: GoalType): string {
   const t = type === 'sinking_fund' ? 'Sinking fund' : 'Expense';
   const g =
-    goal === 'monthly_funding'
+    goal === 'monthly'
       ? 'Monthly'
-      : goal === 'target_balance'
-        ? 'Balance'
-        : goal === 'target_by_date'
+      : goal === 'weekly'
+        ? 'Weekly'
+        : goal === 'yearly'
+          ? 'Yearly'
+          : goal === 'custom'
           ? 'By date'
           : 'No goal';
   return `${t} · ${g}`;

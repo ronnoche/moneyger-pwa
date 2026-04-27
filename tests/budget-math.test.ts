@@ -24,6 +24,8 @@ function txn(overrides: Partial<Transaction>): Transaction {
     accountId: ACCOUNT_ID,
     memo: '',
     status: 'cleared',
+    reconciledAt: null,
+    reconcileEventId: null,
     createdAt: '2026-04-15T00:00:00.000Z',
     updatedAt: '2026-04-15T00:00:00.000Z',
     syncedAt: null,

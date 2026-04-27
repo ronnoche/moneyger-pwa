@@ -71,7 +71,8 @@ export default function AccountsList() {
           {accounts.map((acct) => {
             const settled = accountSettledBalance(acct.id, txns);
             const pending = accountPendingBalance(acct.id, txns);
-            const Icon = acct.isCreditCard ? CreditCard : Landmark;
+            const Icon =
+              acct.accountCategory === 'credit' ? CreditCard : Landmark;
             return (
               <li key={acct.id}>
                 <SwipeRow
@@ -102,7 +103,7 @@ export default function AccountsList() {
                     to={`/accounts/${acct.id}`}
                     className={cn(
                       'flex items-center gap-3 rounded-xl border bg-[color:var(--color-surface)] px-4 py-3 active:bg-[color:var(--color-surface-2)]',
-                      acct.isCreditCard
+                      acct.accountCategory === 'credit'
                         ? 'border-l-2 border-l-[color:var(--color-danger-500)]/40 border-y-[color:var(--color-border)] border-r-[color:var(--color-border)]'
                         : 'border-[color:var(--color-border)]',
                     )}
@@ -119,7 +120,7 @@ export default function AccountsList() {
                         <span className="truncate text-sm font-medium">
                           {acct.name}
                         </span>
-                        <TypeBadge isCredit={acct.isCreditCard} />
+                        <TypeBadge category={acct.accountCategory} />
                       </div>
                       {pending !== 0 && (
                         <div className="mt-0.5 text-xs text-[color:var(--color-fg-muted)]">
@@ -152,7 +153,16 @@ export default function AccountsList() {
   );
 }
 
-function TypeBadge({ isCredit }: { isCredit: boolean }) {
+function TypeBadge({ category }: { category: string }) {
+  const isCredit = category === 'credit';
+  const label =
+    category === 'loan'
+      ? 'Loan'
+      : category === 'tracking'
+        ? 'Tracking'
+        : isCredit
+          ? 'Credit'
+          : 'Cash';
   return (
     <span
       className={cn(
@@ -162,7 +172,7 @@ function TypeBadge({ isCredit }: { isCredit: boolean }) {
           : 'bg-[color:var(--color-surface-2)] text-[color:var(--color-fg-muted)]',
       )}
     >
-      {isCredit ? 'Credit' : 'Cash'}
+      {label}
     </span>
   );
 }

@@ -89,7 +89,7 @@ export default function Dashboard() {
       const avail = categoryAvailable(cat.id, txns, tfrs);
       const budgeted = categoryBudgetedForMonth(cat.id, viewMonth, tfrs);
       const goal = normalizeGoal(cat);
-      const status = goalStatus(goal, avail, budgeted, viewMonth);
+      const status = goalStatus(goal, avail, budgeted, viewMonth, cat.snoozedUntil);
 
       let pass: boolean;
       switch (filter) {
@@ -101,6 +101,9 @@ export default function Dashboard() {
           break;
         case 'money_available':
           pass = avail > 0.005;
+          break;
+        case 'snoozed':
+          pass = status === 'snoozed';
           break;
         default:
           pass = true;

@@ -1,9 +1,9 @@
 import {
   endOfMonth,
+  format,
   parseISO,
   startOfMonth,
   subMonths,
-  differenceInCalendarMonths,
 } from 'date-fns';
 import type { Category } from '@/db/schema';
 import { neededThisMonth, normalizeGoal } from '../goals';
@@ -32,6 +32,11 @@ function scopedCategories(input: PresetInput): Category[] {
   return sorted.filter((c) => set.has(c.id));
 }
 
+function isSnoozedForMonth(category: Category, viewedMonth: Date): boolean {
+  if (!category.snoozedUntil) return false;
+  return category.snoozedUntil >= format(viewedMonth, 'yyyy-MM');
+}
+
 function sumPositive(moves: PresetMove[]): number {
   return round2(
     moves.filter((m) => m.amount > 0).reduce((t, m) => t + m.amount, 0),
@@ -39,21 +44,9 @@ function sumPositive(moves: PresetMove[]): number {
 }
 
 function underfundedPriority(cat: Category): number {
-  if (cat.goalType === 'monthly' || cat.goalType === 'monthly_funding') return 0;
-  if (cat.goalType === 'weekly') return 1;
-  return 3;
-}
-
-function customDueSoonPriority(
-  cat: Category,
-  viewedMonth: Date,
-): number | null {
-  if (cat.goalType !== 'custom' && cat.goalType !== 'target_by_date') return null;
-  if (!cat.goalDueDate) return null;
-  const due = parseISO(cat.goalDueDate);
-  const months = differenceInCalendarMonths(due, viewedMonth);
-  if (months >= 0 && months <= 3) return 2;
-  return null;
+  if (!cat.goalDueDate) return Number.MAX_SAFE_INTEGER + cat.sortOrder;
+  const due = parseISO(cat.goalDueDate).getTime();
+  return due + cat.sortOrder;
 }
 
 export function capByATB(
@@ -96,6 +89,7 @@ export const underfunded: Preset = (input) => {
   const priorityByCategoryId = new Map<string, number>();
 
   for (const cat of cats) {
+    if (isSnoozedForMonth(cat, input.viewedMonth)) continue;
     const g = normalizeGoal(cat);
     if (!g) continue;
     const available = categoryAvailableIndexed(cat.id, idx);
@@ -109,8 +103,7 @@ export const underfunded: Preset = (input) => {
       reason: `Underfunded by ${needed}`,
     });
 
-    const dueSoon = customDueSoonPriority(cat, input.viewedMonth);
-    priorityByCategoryId.set(cat.id, dueSoon ?? underfundedPriority(cat));
+    priorityByCategoryId.set(cat.id, underfundedPriority(cat));
   }
 
   const { moves: finalMoves, capped } = capByATB(
@@ -348,12 +341,35 @@ export const resetAssigned: Preset = (input) => {
   return { moves, totalAmount: 0, cappedByATB: false };
 };
 
+export const reduceOverfunding: Preset = (input) => {
+  const idx = buildIndexes(input.transactions, input.transfers);
+  const cats = scopedCategories(input);
+  const moves: PresetMove[] = [];
+
+  for (const cat of cats) {
+    const goal = normalizeGoal(cat);
+    if (!goal || goal.amount === null || goal.amount <= 0) continue;
+    const available = categoryAvailableIndexed(cat.id, idx);
+    if (available <= goal.amount) continue;
+    const excess = round2(available - goal.amount);
+    if (excess <= 0) continue;
+    moves.push({
+      categoryId: cat.id,
+      amount: -excess,
+      reason: `Reduce overfunded by ${excess}`,
+    });
+  }
+
+  return { moves, totalAmount: 0, cappedByATB: false };
+};
+
 export const PRESETS = {
   underfunded,
   assigned_last_month: assignedLastMonth,
   spent_last_month: spentLastMonth,
   average_assigned: averageAssigned,
   average_spent: averageSpent,
+  reduce_overfunding: reduceOverfunding,
   reset_available: resetAvailable,
   reset_assigned: resetAssigned,
 } satisfies Record<string, Preset>;

@@ -2,14 +2,16 @@ import {
   differenceInCalendarMonths,
   eachWeekOfInterval,
   endOfMonth,
+  format,
   getMonth,
   parseISO,
   startOfMonth,
 } from 'date-fns';
-import type { Category, GoalCadence } from '@/db/schema';
+import type { Category, GoalBehavior, GoalCadence } from '@/db/schema';
 
 export interface NormalizedGoal {
   cadence: GoalCadence;
+  behavior: GoalBehavior;
   amount: number | null;
   dueDate: Date | null;
   recurring: boolean;
@@ -18,12 +20,11 @@ export interface NormalizedGoal {
 
 export type GoalStatus =
   | 'none'
+  | 'snoozed'
   | 'on_track'
   | 'underfunded'
   | 'funded'
   | 'overfunded';
-
-const LEGACY_TARGET_BALANCE: GoalCadence = 'none';
 
 export function normalizeGoal(category: Category): NormalizedGoal | null {
   if (category.goalType === 'none') return null;
@@ -34,64 +35,35 @@ export function normalizeGoal(category: Category): NormalizedGoal | null {
     ? parseISO(category.goalStartMonth)
     : null;
 
-  switch (category.goalType) {
-    case 'monthly_funding':
-      return {
-        cadence: 'monthly',
-        amount,
-        dueDate: null,
-        recurring: true,
-        startMonth,
-      };
+  const cadence =
+    category.goalType === 'monthly_funding'
+      ? 'monthly'
+      : category.goalType === 'target_by_date'
+        ? 'custom'
+        : category.goalType;
 
-    case 'target_balance':
-      return {
-        cadence: LEGACY_TARGET_BALANCE,
-        amount,
-        dueDate: null,
-        recurring: false,
-        startMonth,
-      };
+  const behavior = category.goalBehavior ?? deriveBehavior(category.goalType);
+  if (!behavior) return null;
 
-    case 'target_by_date':
-      return {
-        cadence: 'custom',
-        amount,
-        dueDate: category.goalDueDate ? parseISO(category.goalDueDate) : null,
-        recurring: false,
-        startMonth,
-      };
+  const recurring =
+    category.goalType === 'weekly' || category.goalType === 'monthly'
+      ? true
+      : category.goalType === 'yearly'
+        ? (category.goalRecurring ?? true)
+        : category.goalType === 'custom'
+          ? (category.goalRecurring ?? false)
+          : category.goalType === 'monthly_funding';
 
-    case 'weekly':
-    case 'monthly':
-      return {
-        cadence: category.goalType,
-        amount,
-        dueDate: null,
-        recurring: true,
-        startMonth,
-      };
+  if (behavior === 'have_a_balance_of' && cadence !== 'custom') return null;
+  if (behavior === 'have_a_balance_of' && recurring) return null;
 
-    case 'yearly':
-      return {
-        cadence: 'yearly',
-        amount,
-        dueDate: category.goalDueDate ? parseISO(category.goalDueDate) : null,
-        recurring: category.goalRecurring ?? true,
-        startMonth,
-      };
-
-    case 'custom':
-      return {
-        cadence: 'custom',
-        amount,
-        dueDate: category.goalDueDate ? parseISO(category.goalDueDate) : null,
-        recurring: category.goalRecurring ?? false,
-        startMonth,
-      };
-
-    default:
-      return null;
+  return {
+    cadence,
+    behavior,
+    amount,
+    dueDate: category.goalDueDate ? parseISO(category.goalDueDate) : null,
+    recurring,
+    startMonth,
   }
 }
 
@@ -114,52 +86,39 @@ export function neededThisMonth(
   if (goal.amount === null) return 0;
   const amount = goal.amount;
 
-  switch (goal.cadence) {
-    case 'none': {
-      if (currentAvailable >= amount) return 0;
-      return round2(amount - currentAvailable);
-    }
-
-    case 'weekly': {
-      const weeks = weeksInMonth(viewedMonth);
-      const target = weeks * amount;
-      return Math.max(0, round2(target - currentAvailable));
-    }
-
-    case 'monthly':
-    case 'monthly_funding': {
-      return Math.max(0, round2(amount - currentAvailable));
-    }
-
-    case 'yearly': {
-      if (goal.recurring) {
-        const perMonth = amount / 12;
-        const cap = Math.max(0, amount - currentAvailable);
-        const remainder = Math.max(0, perMonth - budgetedThisMonth);
-        return round2(Math.min(remainder, cap));
-      }
-      if (goal.dueDate && getMonth(goal.dueDate) === getMonth(viewedMonth)) {
-        return Math.max(0, round2(amount - currentAvailable));
-      }
-      return Math.max(0, round2(amount - currentAvailable));
-    }
-
-    case 'custom': {
-      if (!goal.dueDate) {
-        if (currentAvailable >= amount) return 0;
-        return round2(amount - currentAvailable);
-      }
-      const monthsRemaining = Math.max(
-        1,
-        differenceInCalendarMonths(goal.dueDate, viewedMonth) + 1,
-      );
-      const remaining = Math.max(0, amount - currentAvailable);
-      return round2(remaining / monthsRemaining);
-    }
-
-    default:
-      return 0;
+  if (goal.cadence === 'none') {
+    if (currentAvailable >= amount) return 0;
+    return round2(amount - currentAvailable);
   }
+
+  if (goal.behavior === 'set_aside_another') {
+    if (goal.cadence === 'weekly') return round2(weeksInMonth(viewedMonth) * amount);
+    if (goal.cadence === 'yearly') return round2(amount / 12);
+    return round2(amount);
+  }
+
+  if (goal.behavior === 'refill_up_to') {
+    if (goal.cadence === 'yearly') {
+      const remainingYear = Math.max(1, 12 - getMonth(viewedMonth));
+      return round2(Math.max(0, (amount - currentAvailable) / remainingYear));
+    }
+    return round2(Math.max(0, amount - currentAvailable));
+  }
+
+  if (goal.behavior === 'fill_up_to') {
+    return round2(Math.max(0, amount - currentAvailable));
+  }
+
+  if (goal.behavior === 'have_a_balance_of') {
+    const monthsRemaining = goal.dueDate
+      ? Math.max(1, differenceInCalendarMonths(goal.dueDate, viewedMonth) + 1)
+      : 1;
+    return round2(Math.max(0, (amount - currentAvailable) / monthsRemaining));
+  }
+
+  const remainder = Math.max(0, amount - currentAvailable);
+  const carry = Math.max(0, remainder - budgetedThisMonth);
+  return round2(carry);
 }
 
 export function goalStatus(
@@ -167,7 +126,11 @@ export function goalStatus(
   currentAvailable: number,
   budgetedThisMonth: number,
   viewedMonth: Date,
+  snoozedUntil?: string | null,
 ): GoalStatus {
+  if (snoozedUntil && snoozedUntil >= format(viewedMonth, 'yyyy-MM')) {
+    return 'snoozed';
+  }
   if (!goal) return 'none';
   if (goal.amount === null) return 'none';
 
@@ -184,4 +147,18 @@ export function goalStatus(
     viewedMonth,
   );
   return needed === 0 ? 'on_track' : 'underfunded';
+}
+
+function deriveBehavior(goalType: GoalCadence): GoalBehavior | null {
+  if (
+    goalType === 'monthly_funding' ||
+    goalType === 'weekly' ||
+    goalType === 'monthly' ||
+    goalType === 'yearly'
+  ) {
+    return 'set_aside_another';
+  }
+  if (goalType === 'target_balance') return 'refill_up_to';
+  if (goalType === 'target_by_date' || goalType === 'custom') return 'fill_up_to';
+  return null;
 }

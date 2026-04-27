@@ -41,9 +41,10 @@ const GROUP_LABELS: Record<AccountGroupKey, string> = {
 };
 
 function groupForAccount(a: Account): AccountGroupKey {
-  // Phase 0 uses the existing isCreditCard boolean. Phase 4 will expand to a
-  // `type` enum and split Loans / Tracking.
-  return a.isCreditCard ? 'credit' : 'cash';
+  if (a.accountCategory === 'credit') return 'credit';
+  if (a.accountCategory === 'loan') return 'loans';
+  if (a.accountCategory === 'tracking') return 'tracking';
+  return 'cash';
 }
 
 const primary = [
@@ -251,7 +252,8 @@ export function Sidebar({
                   {(open || collapsed) && (
                     <ul className="mt-0.5 flex flex-col gap-0.5">
                       {list.map((a) => {
-                        const Icon = a.isCreditCard ? CreditCard : Landmark;
+                        const Icon =
+                          a.accountCategory === 'credit' ? CreditCard : Landmark;
                         const balance = txns ? accountSettledBalance(a.id, txns) : 0;
                         return (
                           <li key={a.id}>
@@ -272,7 +274,7 @@ export function Sidebar({
                                 size={14}
                                 strokeWidth={1.75}
                                 className={cn(
-                                  a.isCreditCard &&
+                                  a.accountCategory === 'credit' &&
                                     'text-[color:var(--color-danger-600)]',
                                 )}
                                 aria-hidden

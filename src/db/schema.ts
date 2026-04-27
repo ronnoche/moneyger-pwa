@@ -1,5 +1,25 @@
 export type CategoryType = 'expense' | 'sinking_fund';
 export type TxnStatus = 'cleared' | 'pending' | 'reconciled';
+export type AccountCategory = 'cash' | 'credit' | 'loan' | 'tracking';
+export type AccountSubtype =
+  | 'checking'
+  | 'savings'
+  | 'cash'
+  | 'credit_card'
+  | 'line_of_credit'
+  | 'mortgage'
+  | 'auto_loan'
+  | 'student_loan'
+  | 'personal_loan'
+  | 'medical_debt'
+  | 'other_debt'
+  | 'asset'
+  | 'liability';
+export type GoalBehavior =
+  | 'set_aside_another'
+  | 'refill_up_to'
+  | 'fill_up_to'
+  | 'have_a_balance_of';
 
 export type GoalCadence =
   | 'none'
@@ -26,10 +46,13 @@ export interface Category {
   name: string;
   type: CategoryType;
   goalType: GoalCadence;
+  goalBehavior: GoalBehavior | null;
   goalAmount: number;
   goalDueDate: string | null;
   goalRecurring: boolean | null;
   goalStartMonth: string | null;
+  snoozedUntil: string | null;
+  linkedAccountId: string | null;
   sortOrder: number;
   isArchived: boolean;
 }
@@ -37,6 +60,13 @@ export interface Category {
 export interface Account {
   id: string;
   name: string;
+  accountCategory: AccountCategory;
+  subtype: AccountSubtype;
+  onBudget: boolean;
+  lastReconciledAt: string | null;
+  /**
+   * @deprecated Use accountCategory/subtype instead.
+   */
   isCreditCard: boolean;
   isArchived: boolean;
 }
@@ -50,9 +80,19 @@ export interface Transaction {
   accountId: string;
   memo: string;
   status: TxnStatus;
+  reconciledAt: string | null;
+  reconcileEventId: string | null;
   createdAt: string;
   updatedAt: string;
   syncedAt: string | null;
+}
+
+export interface ReconcileEvent {
+  id: string;
+  accountId: string;
+  reconciledAt: string;
+  adjustmentTxnId: string | null;
+  revertedAt: string | null;
 }
 
 export interface Transfer {

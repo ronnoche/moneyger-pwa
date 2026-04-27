@@ -6,6 +6,7 @@ export const PRESET_LABELS: Record<PresetId, string> = {
   spent_last_month: 'Spent Last Month',
   average_assigned: 'Average Assigned',
   average_spent: 'Average Spent',
+  reduce_overfunding: 'Reduce Overfunding',
   reset_available: 'Reset Available Amounts',
   reset_assigned: 'Reset Assigned Amounts',
 };
@@ -19,6 +20,7 @@ export const FUND_PRESET_ORDER: PresetId[] = [
 ];
 
 export const RESET_PRESET_ORDER: PresetId[] = [
+  'reduce_overfunding',
   'reset_available',
   'reset_assigned',
 ];

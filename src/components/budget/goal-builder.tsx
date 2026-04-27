@@ -442,6 +442,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
     case 'weekly':
       return {
         cadence: 'weekly',
+        behavior: 'set_aside_another',
         amount,
         dueDate: null,
         recurring: true,
@@ -450,6 +451,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
     case 'monthly':
       return {
         cadence: 'monthly',
+        behavior: 'set_aside_another',
         amount,
         dueDate: null,
         recurring: true,
@@ -458,6 +460,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
     case 'yearly':
       return {
         cadence: 'yearly',
+        behavior: 'set_aside_another',
         amount,
         dueDate: s.dueDate ? parseISO(s.dueDate) : null,
         recurring: s.recurring,
@@ -466,6 +469,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
     case 'custom':
       return {
         cadence: 'custom',
+        behavior: 'fill_up_to',
         amount,
         dueDate: s.dueDate ? parseISO(s.dueDate) : null,
         recurring: s.recurring,
@@ -474,6 +478,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
     case 'target_balance':
       return {
         cadence: 'none',
+        behavior: 'refill_up_to',
         amount,
         dueDate: null,
         recurring: false,
@@ -486,6 +491,7 @@ function buildCandidateGoal(s: BuilderState): NormalizedGoal | null {
 
 type Patch = Partial<{
   goalType: GoalCadence;
+  goalBehavior: 'set_aside_another' | 'refill_up_to' | 'fill_up_to' | 'have_a_balance_of' | null;
   goalAmount: number;
   goalDueDate: string | null;
   goalRecurring: boolean | null;
@@ -499,6 +505,7 @@ function toPatch(s: BuilderState):
     return {
       patch: {
         goalType: 'none',
+        goalBehavior: null,
         goalAmount: 0,
         goalDueDate: null,
         goalRecurring: null,
@@ -517,6 +524,7 @@ function toPatch(s: BuilderState):
       return {
         patch: {
           goalType: 'weekly',
+          goalBehavior: 'set_aside_another',
           goalAmount: amount,
           goalDueDate: null,
           goalRecurring: true,
@@ -527,6 +535,7 @@ function toPatch(s: BuilderState):
       return {
         patch: {
           goalType: 'monthly',
+          goalBehavior: 'set_aside_another',
           goalAmount: amount,
           goalDueDate: null,
           goalRecurring: true,
@@ -540,6 +549,7 @@ function toPatch(s: BuilderState):
       return {
         patch: {
           goalType: 'yearly',
+          goalBehavior: 'set_aside_another',
           goalAmount: amount,
           goalDueDate: s.recurring ? null : s.dueDate,
           goalRecurring: s.recurring,
@@ -553,6 +563,7 @@ function toPatch(s: BuilderState):
       return {
         patch: {
           goalType: 'custom',
+          goalBehavior: 'fill_up_to',
           goalAmount: amount,
           goalDueDate: s.dueDate,
           goalRecurring: s.recurring,
@@ -563,6 +574,7 @@ function toPatch(s: BuilderState):
       return {
         patch: {
           goalType: 'target_balance',
+          goalBehavior: 'refill_up_to',
           goalAmount: amount,
           goalDueDate: null,
           goalRecurring: null,

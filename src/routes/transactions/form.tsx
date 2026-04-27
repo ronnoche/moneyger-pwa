@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Tag, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,7 +47,12 @@ export function TransactionForm({
   const [direction, setDirection] = useState<'outflow' | 'inflow'>(
     defaultValues.direction,
   );
-  const [categoryId, setCategoryId] = useState(defaultValues.categoryId);
+  const [categoryId, setCategoryId] = useState(() => {
+    if (defaultValues.direction === 'inflow') return AVAILABLE_TO_BUDGET;
+    return defaultValues.categoryId === AVAILABLE_TO_BUDGET
+      ? ''
+      : defaultValues.categoryId;
+  });
   const [accountId, setAccountId] = useState(defaultValues.accountId);
   const [date, setDate] = useState(defaultValues.date);
   const [status, setStatus] = useState(defaultValues.status);
@@ -62,17 +67,6 @@ export function TransactionForm({
 
   const categoryLabel = useCategoryLabel(categoryId);
   const accountLabel = useAccountLabel(accountId);
-
-  useEffect(() => {
-    if (direction === 'inflow') {
-      if (categoryId !== AVAILABLE_TO_BUDGET) {
-        setCategoryId(AVAILABLE_TO_BUDGET);
-        setErrors((e) => ({ ...e, category: '' }));
-      }
-    } else if (categoryId === AVAILABLE_TO_BUDGET) {
-      setCategoryId('');
-    }
-  }, [direction, categoryId]);
 
   const summary = useMemo(() => {
     const parts: string[] = [];
@@ -160,7 +154,18 @@ export function TransactionForm({
 
       <div className="flex-1 space-y-4 px-4 pb-6">
         <div className="flex justify-center">
-          <DirectionPill value={direction} onChange={setDirection} />
+          <DirectionPill
+            value={direction}
+            onChange={(next) => {
+              setDirection(next);
+              if (next === 'inflow') {
+                setCategoryId(AVAILABLE_TO_BUDGET);
+                setErrors((e) => ({ ...e, category: '' }));
+              } else if (categoryId === AVAILABLE_TO_BUDGET) {
+                setCategoryId('');
+              }
+            }}
+          />
         </div>
 
         <div className="pt-2">

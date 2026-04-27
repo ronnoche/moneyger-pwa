@@ -6,7 +6,8 @@ export type BudgetFilterId =
   | 'all'
   | 'underfunded'
   | 'overfunded'
-  | 'money_available';
+  | 'money_available'
+  | 'snoozed';
 
 interface Props {
   value: BudgetFilterId;
@@ -20,6 +21,7 @@ const CHIPS: { id: BudgetFilterId; label: string }[] = [
   { id: 'underfunded', label: 'Underfunded' },
   { id: 'overfunded', label: 'Overfunded' },
   { id: 'money_available', label: 'Money Available' },
+  { id: 'snoozed', label: 'Snoozed' },
 ];
 
 export function FilterChips({ value, onChange, search, onSearchChange }: Props) {

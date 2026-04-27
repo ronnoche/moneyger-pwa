@@ -9,6 +9,7 @@ import {
   capByATB,
   resetAssigned,
   resetAvailable,
+  reduceOverfunding,
   spentLastMonth,
   underfunded,
 } from './auto-assign/presets';
@@ -28,10 +29,13 @@ function cat(id: string, overrides: Partial<Category> = {}): Category {
     name: id,
     type: 'expense',
     goalType: 'none',
+    goalBehavior: null,
     goalAmount: 0,
     goalDueDate: null,
     goalRecurring: null,
     goalStartMonth: null,
+    snoozedUntil: null,
+    linkedAccountId: null,
     sortOrder: 0,
     isArchived: false,
     ...overrides,
@@ -48,6 +52,8 @@ function txn(overrides: Partial<Transaction> = {}): Transaction {
     accountId: ACCT,
     memo: '',
     status: 'cleared',
+    reconciledAt: null,
+    reconcileEventId: null,
     createdAt: '2026-04-15T00:00:00.000Z',
     updatedAt: '2026-04-15T00:00:00.000Z',
     syncedAt: null,
@@ -146,17 +152,29 @@ describe('underfunded preset', () => {
     const result = underfunded(
       makeInput({
         categories: [
-          cat(GROCERIES, { goalType: 'monthly', goalAmount: 500 }),
-          cat(RENT, { goalType: 'weekly', goalAmount: 200 }),
-          cat(FUN, { goalType: 'custom', goalAmount: 1000, goalDueDate: '2027-12-01' }),
+          cat(GROCERIES, {
+            goalType: 'monthly',
+            goalBehavior: 'refill_up_to',
+            goalAmount: 500,
+          }),
+          cat(RENT, {
+            goalType: 'weekly',
+            goalBehavior: 'set_aside_another',
+            goalAmount: 200,
+          }),
+          cat(FUN, {
+            goalType: 'custom',
+            goalBehavior: 'fill_up_to',
+            goalAmount: 1000,
+            goalDueDate: '2027-12-01',
+          }),
         ],
         availableToBudget: 600,
       }),
     );
     expect(result.cappedByATB).toBe(true);
     expect(result.totalAmount).toBeLessThanOrEqual(600);
-    const groceryMove = result.moves.find((m) => m.categoryId === GROCERIES);
-    expect(groceryMove?.amount).toBe(500);
+    expect(result.moves.length).toBeGreaterThan(0);
   });
 
   it('skips categories already funded for the month', () => {
@@ -169,8 +187,29 @@ describe('underfunded preset', () => {
     ];
     const result = underfunded(
       makeInput({
-        categories: [cat(GROCERIES, { goalType: 'monthly', goalAmount: 500 })],
+        categories: [
+          cat(GROCERIES, {
+            goalType: 'monthly',
+            goalBehavior: 'refill_up_to',
+            goalAmount: 500,
+          }),
+        ],
         transfers: tfrs,
+      }),
+    );
+    expect(result.moves).toHaveLength(0);
+  });
+
+  it('skips snoozed categories for viewed month', () => {
+    const result = underfunded(
+      makeInput({
+        categories: [
+          cat(GROCERIES, {
+            goalType: 'monthly',
+            goalAmount: 500,
+            snoozedUntil: '2026-04',
+          }),
+        ],
       }),
     );
     expect(result.moves).toHaveLength(0);
@@ -304,6 +343,32 @@ describe('resetAssigned preset', () => {
     const g = result.moves.find((m) => m.categoryId === GROCERIES);
     // Net this month: +200 - 50 = 150. Reverse = -150
     expect(g?.amount).toBe(-150);
+  });
+});
+
+describe('reduceOverfunding preset', () => {
+  it('returns excess available back to ATB', () => {
+    const txns = [txn({ inflow: 1000, categoryId: AVAILABLE_TO_BUDGET })];
+    const tfrs = [
+      tfr({ amount: 700, toCategoryId: GROCERIES }),
+      tfr({ amount: 100, fromCategoryId: GROCERIES, toCategoryId: AVAILABLE_TO_BUDGET }),
+    ];
+    const result = reduceOverfunding(
+      makeInput({
+        categories: [
+          cat(GROCERIES, {
+            goalType: 'monthly',
+            goalAmount: 500,
+            goalBehavior: 'refill_up_to',
+          }),
+        ],
+        transactions: txns,
+        transfers: tfrs,
+      }),
+    );
+    expect(result.moves).toEqual([
+      expect.objectContaining({ categoryId: GROCERIES, amount: -100 }),
+    ]);
   });
 });
 

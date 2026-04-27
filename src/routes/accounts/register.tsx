@@ -35,6 +35,8 @@ import { toast } from '@/lib/toast';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
 import type { Transaction } from '@/db/schema';
+import { ReconcileModal } from '@/components/reconcile/reconcile-modal';
+import { getUndoableReconcileEvent, undoReconcile } from '@/lib/reconcile';
 
 const AccountSparkline = lazy(() =>
   import('@/components/accounts/account-sparkline').then((m) => ({
@@ -55,7 +57,12 @@ export default function AccountRegister() {
   const [range, setRange] = useState<RegisterDateRange>('all');
   const [status, setStatus] = useState<RegisterStatus>('all');
   const [selectedTxnId, setSelectedTxnId] = useState<string | null>(null);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
   const reduced = useReducedMotion();
+  const undoableReconcile = useLiveQuery(
+    () => (id ? getUndoableReconcileEvent(id) : Promise.resolve(null)),
+    [id, allTxns],
+  );
 
   const rowsWithBalance = useMemo(() => {
     if (!allTxns || !id) return undefined;
@@ -205,12 +212,24 @@ export default function AccountRegister() {
         title={account?.name ?? 'Account'}
         backTo="/accounts"
         action={
-          <Link
-            to={`/transactions/new?account=${id}`}
-            className="flex h-9 items-center gap-1 rounded-lg bg-[color:var(--color-brand-600)] px-3 text-sm font-semibold text-white active:bg-[color:var(--color-brand-700)]"
-          >
-            <span>Add</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {(account?.accountCategory === 'cash' ||
+              account?.accountCategory === 'credit') && (
+              <button
+                type="button"
+                onClick={() => setReconcileOpen(true)}
+                className="flex h-9 items-center gap-1 rounded-lg border border-[color:var(--color-border)] px-3 text-sm font-semibold text-[color:var(--color-fg)] active:bg-[color:var(--color-surface-2)]"
+              >
+                Reconcile
+              </button>
+            )}
+            <Link
+              to={`/transactions/new?account=${id}`}
+              className="flex h-9 items-center gap-1 rounded-lg bg-[color:var(--color-brand-600)] px-3 text-sm font-semibold text-white active:bg-[color:var(--color-brand-700)]"
+            >
+              <span>Add</span>
+            </Link>
+          </div>
         }
       />
 
@@ -224,7 +243,7 @@ export default function AccountRegister() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[color:var(--color-surface-2)]">
-                      {account.isCreditCard ? (
+                      {account.accountCategory === 'credit' ? (
                         <CreditCard
                           size={14}
                           strokeWidth={1.75}
@@ -239,7 +258,13 @@ export default function AccountRegister() {
                       )}
                     </div>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-[color:var(--color-fg-muted)]">
-                      {account.isCreditCard ? 'Credit card' : 'Cash'}
+                      {account.accountCategory === 'credit'
+                        ? 'Credit'
+                        : account.accountCategory === 'loan'
+                          ? 'Loan'
+                          : account.accountCategory === 'tracking'
+                            ? 'Tracking'
+                            : 'Cash'}
                     </span>
                   </div>
                   <div className="mt-1">
@@ -276,6 +301,21 @@ export default function AccountRegister() {
                 status={status}
                 onStatusChange={setStatus}
               />
+              {undoableReconcile && (
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-[color:var(--color-brand-700)] hover:underline"
+                    onClick={async () => {
+                      const ok = await undoReconcile(undoableReconcile.id);
+                      if (ok) toast.success('Reconcile undone.');
+                      else toast.error('Undo window has expired.');
+                    }}
+                  >
+                    Undo reconcile
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="pt-3">
@@ -317,7 +357,11 @@ export default function AccountRegister() {
                 <ul className="divide-y divide-[color:var(--color-border)] overflow-hidden rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)]">
                   <AnimatePresence initial={false}>
                     {filtered.map(({ txn, balance }) => {
-                      const label = categoryLabel(txn, categories);
+                      const label =
+                        account.accountCategory === 'loan' ||
+                        account.accountCategory === 'tracking'
+                          ? '—'
+                          : categoryLabel(txn, categories);
                       const selected = selectedTxnId === txn.id;
                       return (
                         <motion.li
@@ -361,6 +405,14 @@ export default function AccountRegister() {
             </div>
           </aside>
         </div>
+      )}
+      {account && (
+        <ReconcileModal
+          open={reconcileOpen}
+          onOpenChange={setReconcileOpen}
+          accountId={account.id}
+          clearedBalance={settled}
+        />
       )}
     </div>
   );
@@ -467,6 +519,7 @@ function categoryLabel(
   categories: ReturnType<typeof useCategories>,
 ): string {
   if (t.categoryId === AVAILABLE_TO_BUDGET) return 'Available to Budget';
+  if (t.categoryId === 'off_budget') return 'Off-budget balance';
   return categories?.find((c) => c.id === t.categoryId)?.name ?? 'Unknown';
 }
 

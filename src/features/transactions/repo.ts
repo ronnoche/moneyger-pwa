@@ -27,6 +27,8 @@ export async function createTransaction(
     accountId: input.accountId,
     memo: input.memo,
     status: input.status,
+    reconciledAt: input.status === 'reconciled' ? now : null,
+    reconcileEventId: null,
     createdAt: now,
     updatedAt: now,
     syncedAt: null,
@@ -42,6 +44,12 @@ export async function updateTransaction(
   patch: Partial<TransactionInput>,
 ): Promise<void> {
   const next: Partial<Transaction> = { ...patch, updatedAt: nowISO() };
+  if (patch.status === 'reconciled') {
+    next.reconciledAt = nowISO();
+  } else if (patch.status) {
+    next.reconciledAt = null;
+    next.reconcileEventId = null;
+  }
   if (patch.outflow !== undefined) next.outflow = round2(patch.outflow);
   if (patch.inflow !== undefined) next.inflow = round2(patch.inflow);
   await db.transactions.update(id, next);

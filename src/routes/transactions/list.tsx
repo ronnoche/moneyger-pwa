@@ -359,6 +359,8 @@ function buildActiveChips(
     const label =
       f.categoryId === AVAILABLE_TO_BUDGET
         ? 'Available to Budget'
+        : f.categoryId === 'off_budget'
+          ? 'Off-budget balance'
         : (categories.find((c) => c.id === f.categoryId)?.name ?? 'Unknown');
     chips.push({
       id: 'category',
@@ -394,6 +396,8 @@ function searchHaystack(
   const cat =
     t.categoryId === AVAILABLE_TO_BUDGET
       ? 'available to budget'
+      : t.categoryId === 'off_budget'
+        ? 'off-budget balance'
       : (categories?.find((c) => c.id === t.categoryId)?.name ?? '');
   const amount = (t.inflow > 0 ? t.inflow : t.outflow).toFixed(2);
   return `${acct} ${cat} ${t.memo} ${amount}`.toLowerCase();
@@ -424,6 +428,7 @@ function labelFor(
   categories: ReturnType<typeof useCategories>,
 ): string {
   if (t.categoryId === AVAILABLE_TO_BUDGET) return 'Available to Budget';
+  if (t.categoryId === 'off_budget') return 'Off-budget balance';
   const cat = categories?.find((c) => c.id === t.categoryId);
   return cat?.name ?? 'Unknown bucket list';
 }

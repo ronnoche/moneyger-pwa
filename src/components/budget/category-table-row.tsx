@@ -48,7 +48,7 @@ export function CategoryTableRow({
   const budgeted = categoryBudgetedForMonth(cat.id, viewMonth, tfrs);
   const activity = categoryActivityForMonth(cat.id, viewMonth, txns);
   const goal = normalizeGoal(cat);
-  const status = goalStatus(goal, avail, budgeted, viewMonth);
+  const status = goalStatus(goal, avail, budgeted, viewMonth, cat.snoozedUntil);
 
   return (
     <ContextMenu.Root>
@@ -271,6 +271,10 @@ function AssignedCell({ cat, budgeted, viewMonth, status }: AssignedCellProps) {
       return;
     }
     const delta = Math.round((parsed - budgeted) * 100) / 100;
+    if (parsed < 0) {
+      toast.error('Assigned amount cannot be negative');
+      return;
+    }
     if (Math.abs(delta) < 0.005) {
       setEditing(false);
       return;
