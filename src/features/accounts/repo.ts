@@ -1,6 +1,7 @@
 import { db, newId, nowISO } from '@/db/db';
 import type { Account, Transaction } from '@/db/schema';
 import { AVAILABLE_TO_BUDGET } from '@/lib/budget-math';
+import { syncInBackground } from '@/lib/sync';
 
 export interface AccountInput {
   name: string;
@@ -26,12 +27,13 @@ export async function createAccount(input: AccountInput): Promise<Account> {
     isArchived: false,
   };
   const balance = round2(input.openingBalance);
+  let seedTxn: Transaction | null = null;
 
   await db.transaction('rw', db.accounts, db.transactions, async () => {
     await db.accounts.add(account);
     if (balance !== 0) {
       const now = nowISO();
-      const seed: Transaction = {
+      seedTxn = {
         id: newId(),
         date: now.slice(0, 10),
         outflow: balance < 0 ? -balance : 0,
@@ -44,10 +46,14 @@ export async function createAccount(input: AccountInput): Promise<Account> {
         updatedAt: now,
         syncedAt: null,
       };
-      await db.transactions.add(seed);
+      await db.transactions.add(seedTxn);
     }
   });
 
+  syncInBackground('create', 'accounts', account);
+  if (seedTxn) {
+    syncInBackground('create', 'transactions', seedTxn);
+  }
   return account;
 }
 
@@ -60,6 +66,7 @@ export async function updateAccount(
   patch: Partial<Omit<Account, 'id'>>,
 ): Promise<void> {
   await db.accounts.update(id, patch);
+  syncInBackground('update', 'accounts', { id, ...patch });
 }
 
 export async function accountTransactionCount(id: string): Promise<number> {
@@ -70,4 +77,5 @@ export async function archiveAccount(id: string): Promise<void> {
   const count = await accountTransactionCount(id);
   if (count > 0) throw new AccountHasTransactionsError(count);
   await db.accounts.update(id, { isArchived: true });
+  syncInBackground('update', 'accounts', { id, isArchived: true });
 }

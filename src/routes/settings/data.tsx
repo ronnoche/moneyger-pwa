@@ -1,14 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  downloadBackup,
-  exportBackup,
-  importBackup,
-  resetAllData,
-} from '@/lib/backup';
-import { Button } from '@/components/ui/button';
+import { useRef, useState } from 'react';
+import { useAuthSession } from '@/auth/session';
 import { PageHeader } from '@/components/layout/page-header';
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+import { Button } from '@/components/ui/button';
+import { downloadBackup, exportBackup, importBackup, resetAllData } from '@/lib/backup';
+import { fullSync } from '@/lib/sync';
 
 type Status =
   | { kind: 'idle' }
@@ -16,68 +11,10 @@ type Status =
   | { kind: 'error'; message: string };
 
 export default function SettingsData() {
+  const { session, signOut } = useAuthSession();
   const fileInput = useRef<HTMLInputElement | null>(null);
-  const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [busy, setBusy] = useState(false);
-  const [googleReady, setGoogleReady] = useState(false);
-  const [idToken, setIdToken] = useState<string | null>(null);
-  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function setupGoogleAuth() {
-      if (!GOOGLE_CLIENT_ID) {
-        setStatus({
-          kind: 'error',
-          message: 'Missing VITE_GOOGLE_CLIENT_ID. Add it in Netlify and local env.',
-        });
-        return;
-      }
-
-      try {
-        await loadGoogleIdentityScript();
-        if (!active || !window.google || !googleButtonRef.current) return;
-
-        window.google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response) => {
-            if (!response.credential) return;
-            const email = parseGoogleEmailFromIdToken(response.credential);
-            setIdToken(response.credential);
-            setGoogleEmail(email);
-            setStatus({
-              kind: 'success',
-              message: email
-                ? `Signed in with Google: ${email}`
-                : 'Signed in with Google.',
-            });
-          },
-        });
-
-        googleButtonRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          width: 260,
-        });
-        setGoogleReady(true);
-      } catch (error) {
-        setStatus({
-          kind: 'error',
-          message: error instanceof Error ? error.message : 'Google Auth failed to load',
-        });
-      }
-    }
-
-    void setupGoogleAuth();
-
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function handleExport() {
     setBusy(true);
@@ -132,30 +69,11 @@ export default function SettingsData() {
   }
 
   async function handleGoogleSync() {
-    if (!idToken) {
-      setStatus({ kind: 'error', message: 'Sign in with Google first.' });
-      return;
-    }
-
     setBusy(true);
     try {
-      const backup = await exportBackup();
-      const res = await fetch('/.netlify/functions/sheets-sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ idToken, backup }),
-      });
-      const payload = (await res.json()) as { error?: string; syncedRows?: number };
-      if (!res.ok) {
-        throw new Error(payload.error || 'Google Sheets sync failed');
-      }
-
-      setStatus({
-        kind: 'success',
-        message: `Synced ${payload.syncedRows ?? 0} rows to Google Sheets.`,
-      });
+      const result = await fullSync();
+      if (!result.ok) throw new Error(result.error ?? 'Google Sheets sync failed');
+      setStatus({ kind: 'success', message: 'Full sync completed.' });
     } catch (e) {
       setStatus({ kind: 'error', message: (e as Error).message });
     } finally {
@@ -203,17 +121,25 @@ export default function SettingsData() {
 
         <Card
           title="Google Sheets Sync"
-          body="Sign in with Google, then push your full backup to the server and append records to your sheet."
+          body="Your app-level Google session is active. Trigger a full sync to push current local records to Apps Script."
         >
           <div className="space-y-3">
-            <div ref={googleButtonRef} className="min-h-10" />
             <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleGoogleSync} disabled={busy || !googleReady || !idToken}>
+              <Button onClick={handleGoogleSync} disabled={busy}>
                 Sync to Google Sheets
               </Button>
-              {googleEmail && (
-                <p className="text-xs text-ink-500">Connected account: {googleEmail}</p>
-              )}
+              <Button variant="secondary" onClick={signOut} disabled={busy}>
+                Sign out
+              </Button>
+            </div>
+            <p className="text-xs text-ink-500">
+              Connected account: {session?.email ?? 'Unknown account'}
+            </p>
+            <p className="text-xs text-ink-500">
+              Scope includes profile, email, spreadsheets, and drive.file.
+            </p>
+            <div className="text-[11px] text-ink-500">
+              Access token is available client-side in the auth session.
             </div>
           </div>
         </Card>
@@ -242,53 +168,6 @@ export default function SettingsData() {
       )}
     </div>
   );
-}
-
-function parseGoogleEmailFromIdToken(idToken: string): string | null {
-  try {
-    const payload = idToken.split('.')[1];
-    if (!payload) return null;
-    const json = JSON.parse(decodeBase64Url(payload)) as { email?: string };
-    return json.email ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function decodeBase64Url(value: string): string {
-  const padded = value.padEnd(Math.ceil(value.length / 4) * 4, '=');
-  const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
-  return atob(base64);
-}
-
-function loadGoogleIdentityScript(): Promise<void> {
-  if (window.google?.accounts?.id) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(
-      'script[data-google-identity="true"]',
-    ) as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener(
-        'error',
-        () => reject(new Error('Could not load Google Identity script')),
-        { once: true },
-      );
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.dataset.googleIdentity = 'true';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Could not load Google Identity script'));
-    document.head.appendChild(script);
-  });
 }
 
 function Card({

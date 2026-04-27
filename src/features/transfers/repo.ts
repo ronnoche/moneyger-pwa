@@ -1,5 +1,6 @@
 import { db, newId, nowISO } from '@/db/db';
 import type { Transfer } from '@/db/schema';
+import { syncInBackground } from '@/lib/sync';
 
 export interface TransferInput {
   date: string;
@@ -23,9 +24,11 @@ export async function createTransfer(input: TransferInput): Promise<Transfer> {
     syncedAt: null,
   };
   await db.transfers.add(transfer);
+  syncInBackground('create', 'transfers', transfer);
   return transfer;
 }
 
 export async function deleteTransfer(id: string): Promise<void> {
   await db.transfers.delete(id);
+  syncInBackground('delete', 'transfers', { id });
 }

@@ -1,5 +1,6 @@
 import { db, newId, nowISO } from '@/db/db';
 import type { Transaction } from '@/db/schema';
+import { syncInBackground } from '@/lib/sync';
 
 const LAST_ACCOUNT_KEY = 'moneyger:last-account';
 
@@ -31,6 +32,7 @@ export async function createTransaction(
     syncedAt: null,
   };
   await db.transactions.add(txn);
+  syncInBackground('create', 'transactions', txn);
   rememberAccount(input.accountId);
   return txn;
 }
@@ -43,11 +45,13 @@ export async function updateTransaction(
   if (patch.outflow !== undefined) next.outflow = round2(patch.outflow);
   if (patch.inflow !== undefined) next.inflow = round2(patch.inflow);
   await db.transactions.update(id, next);
+  syncInBackground('update', 'transactions', { id, ...next });
   if (patch.accountId) rememberAccount(patch.accountId);
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
   await db.transactions.delete(id);
+  syncInBackground('delete', 'transactions', { id });
 }
 
 export function getLastUsedAccountId(): string | null {

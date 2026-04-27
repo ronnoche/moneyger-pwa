@@ -1,6 +1,4 @@
-import { google } from 'googleapis';
-
-const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
+const USERINFO_URL = 'https://www.googleapis.com/oauth2/v3/userinfo';
 
 function response(statusCode, payload) {
   return {
@@ -13,155 +11,97 @@ function response(statusCode, payload) {
   };
 }
 
-function parseRequestBody(rawBody) {
-  if (!rawBody) {
-    throw new Error('Request body is empty');
-  }
-  const parsed = JSON.parse(rawBody);
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Request body is invalid');
-  }
+function parseBody(event) {
+  if (!event.body) throw new Error('Request body is empty');
+  const parsed = JSON.parse(event.body);
+  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid request body');
   return parsed;
 }
 
-async function verifyGoogleIdToken(idToken, expectedAudience) {
-  const url = new URL('https://oauth2.googleapis.com/tokeninfo');
-  url.searchParams.set('id_token', idToken);
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error('Google token validation failed');
-  }
-
-  const payload = await res.json();
-  if (payload.aud !== expectedAudience) {
-    throw new Error('Google token audience mismatch');
-  }
-  if (payload.email_verified !== 'true') {
-    throw new Error('Google account email is not verified');
-  }
-
-  return payload;
+function readBearer(event) {
+  const header =
+    event.headers?.authorization ?? event.headers?.Authorization ?? '';
+  if (!header.toLowerCase().startsWith('bearer ')) return null;
+  return header.slice(7).trim() || null;
 }
 
-function buildRows(email, backup) {
-  const syncedAt = new Date().toISOString();
-  const entities = [
-    ['groups', backup.data.groups],
-    ['categories', backup.data.categories],
-    ['accounts', backup.data.accounts],
-    ['transactions', backup.data.transactions],
-    ['transfers', backup.data.transfers],
-    ['netWorthEntries', backup.data.netWorthEntries],
-  ];
-
-  const rows = [];
-  for (const [entityType, items] of entities) {
-    if (!Array.isArray(items)) continue;
-    for (const item of items) {
-      rows.push([
-        syncedAt,
-        email,
-        backup.version,
-        backup.exportedAt,
-        entityType,
-        item?.id ?? '',
-        JSON.stringify(item),
-      ]);
-    }
-  }
-
-  if (rows.length === 0) {
-    rows.push([
-      syncedAt,
-      email,
-      backup.version,
-      backup.exportedAt,
-      'empty_backup',
-      '',
-      '{}',
-    ]);
-  }
-
-  return rows;
+async function verifyAccessToken(accessToken) {
+  const res = await fetch(USERINFO_URL, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const info = await res.json();
+  if (!info.email || !info.email_verified) return null;
+  return { email: String(info.email).toLowerCase(), sub: info.sub ?? null };
 }
 
-async function appendRowsToSheet(rows) {
-  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-  const serviceEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
-  const sheetName = process.env.GOOGLE_SHEETS_TAB || 'Records';
-
-  if (!spreadsheetId || !serviceEmail || !privateKey) {
-    throw new Error('Google Sheets server environment is not configured');
-  }
-
-  const auth = new google.auth.JWT({
-    email: serviceEmail,
-    key: privateKey.replace(/\\n/g, '\n'),
-    scopes: [SHEETS_SCOPE],
-  });
-  const sheets = google.sheets({ version: 'v4', auth });
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${sheetName}!A:G`,
-    valueInputOption: 'RAW',
-    insertDataOption: 'INSERT_ROWS',
-    requestBody: {
-      values: rows,
-    },
-  });
+function buildAllowlist(raw) {
+  if (!raw) return null;
+  const list = raw
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return list.length ? new Set(list) : null;
 }
 
 export async function handler(event) {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, body: '' };
-  }
   if (event.httpMethod !== 'POST') {
-    return response(405, { error: 'Method not allowed' });
+    return response(405, { ok: false, error: 'Method not allowed' });
   }
 
   try {
-    const body = parseRequestBody(event.body);
-    const idToken = body.idToken;
-    const backup = body.backup;
-    const expectedAudience = process.env.GOOGLE_CLIENT_ID;
-
-    if (!idToken || typeof idToken !== 'string') {
-      return response(400, { error: 'Missing Google idToken' });
-    }
-    if (!expectedAudience) {
-      throw new Error('GOOGLE_CLIENT_ID is missing on server');
-    }
-    if (!backup || typeof backup !== 'object') {
-      return response(400, { error: 'Missing backup payload' });
+    const appsScriptUrl = process.env.APPS_SCRIPT_URL;
+    const appsScriptSecret = process.env.APPS_SCRIPT_SECRET;
+    if (!appsScriptUrl || !appsScriptSecret) {
+      throw new Error('Missing APPS_SCRIPT_URL or APPS_SCRIPT_SECRET in server env');
     }
 
-    const tokenPayload = await verifyGoogleIdToken(idToken, expectedAudience);
-    const allowed = process.env.GOOGLE_ALLOWED_EMAILS;
-    if (allowed) {
-      const allowedEmails = new Set(
-        allowed
-          .split(',')
-          .map((entry) => entry.trim().toLowerCase())
-          .filter(Boolean),
-      );
-      if (!allowedEmails.has(String(tokenPayload.email).toLowerCase())) {
-        return response(403, { error: 'Google account is not allowed' });
-      }
+    const accessToken = readBearer(event);
+    if (!accessToken) {
+      return response(401, { ok: false, error: 'Missing bearer token' });
     }
 
-    const rows = buildRows(tokenPayload.email, backup);
-    await appendRowsToSheet(rows);
+    const identity = await verifyAccessToken(accessToken);
+    if (!identity) {
+      return response(401, { ok: false, error: 'Invalid or expired access token' });
+    }
 
-    return response(200, {
-      ok: true,
-      syncedRows: rows.length,
-      user: tokenPayload.email,
+    const allowlist = buildAllowlist(process.env.GOOGLE_ALLOWED_EMAILS);
+    if (allowlist && !allowlist.has(identity.email)) {
+      return response(403, { ok: false, error: 'Email not allowed' });
+    }
+
+    const body = parseBody(event);
+    const { operation, entityType, payload } = body;
+    if (!operation || !entityType) {
+      return response(400, { ok: false, error: 'Missing operation or entityType' });
+    }
+
+    const upstream = await fetch(appsScriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: appsScriptSecret,
+        operation,
+        entityType,
+        payload,
+        actor: { email: identity.email, sub: identity.sub },
+      }),
     });
+
+    const raw = await upstream.json().catch(() => ({}));
+    if (!upstream.ok) {
+      return response(upstream.status, {
+        ok: false,
+        error: raw?.error || 'Apps Script request failed',
+      });
+    }
+
+    return response(200, raw?.ok === false ? raw : { ok: true, ...raw });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected error';
-    return response(500, { error: message });
+    return response(500, {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unexpected server error',
+    });
   }
 }

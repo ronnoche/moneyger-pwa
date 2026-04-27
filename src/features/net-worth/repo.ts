@@ -1,5 +1,6 @@
 import { db, newId } from '@/db/db';
 import type { NetWorthEntry } from '@/db/schema';
+import { syncInBackground } from '@/lib/sync';
 
 export interface NetWorthInput {
   date: string;
@@ -21,9 +22,11 @@ export async function createNetWorthEntry(
     notes: input.notes.trim(),
   };
   await db.netWorthEntries.add(entry);
+  syncInBackground('create', 'netWorthEntries', entry);
   return entry;
 }
 
 export async function deleteNetWorthEntry(id: string): Promise<void> {
   await db.netWorthEntries.delete(id);
+  syncInBackground('delete', 'netWorthEntries', { id });
 }

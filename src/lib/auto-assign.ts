@@ -4,6 +4,7 @@ import { AVAILABLE_TO_BUDGET } from './budget-math';
 import { runPreset } from './auto-assign/presets';
 import type { PresetInput } from './auto-assign/types';
 import type { AutoAssignHistoryEntry, Transfer } from '@/db/schema';
+import { syncInBackground } from '@/lib/sync';
 
 export * from './auto-assign/types';
 export {
@@ -80,6 +81,11 @@ export async function applyPreset(
     await db.autoAssignHistory.add(entry);
   });
 
+  for (const transferId of entry.transferIds) {
+    const transfer = await db.transfers.get(transferId);
+    if (transfer) syncInBackground('create', 'transfers', transfer);
+  }
+
   return entry;
 }
 
@@ -87,6 +93,7 @@ export async function revertAutoAssign(
   historyEntryId: string,
   db: MoneygerDB,
 ): Promise<void> {
+  const createdReverseTransfers: Transfer[] = [];
   await db.transaction('rw', db.transfers, db.autoAssignHistory, async () => {
     const entry = await db.autoAssignHistory.get(historyEntryId);
     if (!entry) throw new Error(`Auto-assign history entry not found: ${historyEntryId}`);
@@ -110,10 +117,14 @@ export async function revertAutoAssign(
         syncedAt: null,
       };
       await db.transfers.add(reverse);
+      createdReverseTransfers.push(reverse);
     }
 
     await db.autoAssignHistory.update(historyEntryId, {
       revertedAt: now,
     });
   });
+  for (const reverse of createdReverseTransfers) {
+    syncInBackground('create', 'transfers', reverse);
+  }
 }

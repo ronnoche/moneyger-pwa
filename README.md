@@ -60,33 +60,50 @@ least one group, one category, and one account.
 
 ## Google Auth + Sheets Sync
 
-The app now supports syncing backup records into Google Sheets through a
-Netlify Function at `/.netlify/functions/sheets-sync`.
+Google sign-in runs through two Netlify Functions:
+
+- `/.netlify/functions/google-oauth-exchange` exchanges the auth code for tokens
+- `/.netlify/functions/google-oauth-refresh` refreshes access tokens
+
+All Sheets writes go through a server proxy:
+
+- `/.netlify/functions/sheets-sync` verifies the caller's Google access token
+  with `oauth2/v3/userinfo`, then forwards the write to your Apps Script
+  endpoint. The Apps Script shared secret never leaves the server.
 
 ### 1) Google Cloud setup
 
 - Create or use a Google Cloud project
-- Enable `Google Sheets API`
-- Configure `OAuth consent screen`
-- Create an OAuth `Web application` client for your site domains
-- Create a service account and generate a JSON key
-- Share the target Google Sheet with the service account email (Editor)
+- Configure `OAuth consent screen` (Testing mode is fine)
+- Create an OAuth `Web application` client
+- Register authorized redirect URIs (one per environment):
+  - `http://localhost:8888/auth/callback` (local `netlify dev`)
+  - `http://localhost:5173/auth/callback` (plain `vite` dev)
+  - `https://<your-netlify-site>.netlify.app/auth/callback`
+- Register authorized JavaScript origins for the same hosts
+- Add QA accounts to `OAuth consent screen -> Test users`
 
 ### 2) Environment variables
 
-Set these in Netlify and local `.env` for testing:
+See `.env.example` for the full list and client vs server boundary.
 
-- `VITE_GOOGLE_CLIENT_ID` (frontend OAuth client id)
-- `GOOGLE_CLIENT_ID` (same OAuth client id, used by server token checks)
-- `GOOGLE_SHEETS_ID` (spreadsheet id from the sheet URL)
-- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
-- `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (keep `\n` in the value)
-- `GOOGLE_SHEETS_TAB` (optional, default `Records`)
+Client-safe (prefix `VITE_`, baked into the browser bundle):
+
+- `VITE_GOOGLE_CLIENT_ID`
+
+Server-only (Netlify function env, never sent to the browser):
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `APPS_SCRIPT_URL`
+- `APPS_SCRIPT_SECRET`
 - `GOOGLE_ALLOWED_EMAILS` (optional comma-separated allowlist)
 
-### 3) App flow
+### 3) Local QA
 
-- Open `Settings -> Data`
-- Sign in with Google
-- Click `Sync to Google Sheets`
-- Each sync appends one row per record to the configured sheet tab
+- Copy `.env.example` to `.env` and fill values
+- Install Netlify CLI once: `pnpm dlx netlify-cli --version`
+- Run `pnpm dlx netlify dev` (serves on `http://localhost:8888` and proxies Vite)
+- Open the site, click `Sign in with Google`
+- After callback, the session is persisted in `localStorage`
+- Sync buttons in `Settings -> Data` call the proxy with the user's bearer token

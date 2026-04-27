@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { RootLayout } from './root';
+import SignInPage from '@/routes/sign-in';
+import AuthCallbackPage from '@/routes/auth-callback';
 import Dashboard from '@/routes/dashboard';
 import TransactionsList from '@/routes/transactions/list';
 import TransactionNew from '@/routes/transactions/new';
@@ -10,6 +12,8 @@ import SettingsAppearance from '@/routes/settings/appearance';
 import SettingsData from '@/routes/settings/data';
 
 export const router = createBrowserRouter([
+  { path: '/sign-in', element: <SignInPage /> },
+  { path: '/auth/callback', element: <AuthCallbackPage /> },
   {
     element: <RootLayout />,
     children: [

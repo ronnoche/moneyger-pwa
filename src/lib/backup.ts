@@ -1,5 +1,6 @@
 import { db } from '@/db/db';
 import { clearOnboarding } from '@/lib/onboarding';
+import { syncInBackground } from '@/lib/sync';
 import type {
   Account,
   Category,
@@ -69,6 +70,15 @@ export async function importBackup(
   const parsed = JSON.parse(text) as unknown;
   const backup = coerceBackup(parsed);
 
+  let removed = {
+    groups: [] as Group[],
+    categories: [] as Category[],
+    accounts: [] as Account[],
+    transactions: [] as Transaction[],
+    transfers: [] as Transfer[],
+    netWorthEntries: [] as NetWorthEntry[],
+  };
+
   await db.transaction(
     'rw',
     [
@@ -81,6 +91,14 @@ export async function importBackup(
     ],
     async () => {
       if (mode === 'replace') {
+        removed = {
+          groups: await db.groups.toArray(),
+          categories: await db.categories.toArray(),
+          accounts: await db.accounts.toArray(),
+          transactions: await db.transactions.toArray(),
+          transfers: await db.transfers.toArray(),
+          netWorthEntries: await db.netWorthEntries.toArray(),
+        };
         await Promise.all([
           db.groups.clear(),
           db.categories.clear(),
@@ -98,9 +116,51 @@ export async function importBackup(
       await db.netWorthEntries.bulkPut(backup.data.netWorthEntries);
     },
   );
+
+  if (mode === 'replace') {
+    for (const row of removed.groups) syncInBackground('delete', 'groups', { id: row.id });
+    for (const row of removed.categories) {
+      syncInBackground('delete', 'categories', { id: row.id });
+    }
+    for (const row of removed.accounts) {
+      syncInBackground('delete', 'accounts', { id: row.id });
+    }
+    for (const row of removed.transactions) {
+      syncInBackground('delete', 'transactions', { id: row.id });
+    }
+    for (const row of removed.transfers) {
+      syncInBackground('delete', 'transfers', { id: row.id });
+    }
+    for (const row of removed.netWorthEntries) {
+      syncInBackground('delete', 'netWorthEntries', { id: row.id });
+    }
+  }
+
+  for (const row of backup.data.groups) syncInBackground('create', 'groups', row);
+  for (const row of backup.data.categories) {
+    syncInBackground('create', 'categories', row);
+  }
+  for (const row of backup.data.accounts) syncInBackground('create', 'accounts', row);
+  for (const row of backup.data.transactions) {
+    syncInBackground('create', 'transactions', row);
+  }
+  for (const row of backup.data.transfers) syncInBackground('create', 'transfers', row);
+  for (const row of backup.data.netWorthEntries) {
+    syncInBackground('create', 'netWorthEntries', row);
+  }
 }
 
 export async function resetAllData(): Promise<void> {
+  const [groups, categories, accounts, transactions, transfers, netWorthEntries] =
+    await Promise.all([
+      db.groups.toArray(),
+      db.categories.toArray(),
+      db.accounts.toArray(),
+      db.transactions.toArray(),
+      db.transfers.toArray(),
+      db.netWorthEntries.toArray(),
+    ]);
+
   await db.transaction(
     'rw',
     [
@@ -125,6 +185,17 @@ export async function resetAllData(): Promise<void> {
     },
   );
   clearOnboarding();
+
+  for (const row of groups) syncInBackground('delete', 'groups', { id: row.id });
+  for (const row of categories) syncInBackground('delete', 'categories', { id: row.id });
+  for (const row of accounts) syncInBackground('delete', 'accounts', { id: row.id });
+  for (const row of transactions) {
+    syncInBackground('delete', 'transactions', { id: row.id });
+  }
+  for (const row of transfers) syncInBackground('delete', 'transfers', { id: row.id });
+  for (const row of netWorthEntries) {
+    syncInBackground('delete', 'netWorthEntries', { id: row.id });
+  }
 }
 
 function coerceBackup(raw: unknown): BackupFile {

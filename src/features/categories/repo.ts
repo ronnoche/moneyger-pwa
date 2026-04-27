@@ -1,5 +1,6 @@
 import { db, newId } from '@/db/db';
 import type { Category, CategoryType, GoalType } from '@/db/schema';
+import { syncInBackground } from '@/lib/sync';
 
 export interface CategoryInput {
   groupId: string;
@@ -31,6 +32,7 @@ export async function createCategory(input: CategoryInput): Promise<Category> {
     isArchived: false,
   };
   await db.categories.add(category);
+  syncInBackground('create', 'categories', category);
   return category;
 }
 
@@ -39,8 +41,10 @@ export async function updateCategory(
   patch: Partial<Omit<Category, 'id'>>,
 ): Promise<void> {
   await db.categories.update(id, patch);
+  syncInBackground('update', 'categories', { id, ...patch });
 }
 
 export async function archiveCategory(id: string): Promise<void> {
   await db.categories.update(id, { isArchived: true });
+  syncInBackground('update', 'categories', { id, isArchived: true });
 }

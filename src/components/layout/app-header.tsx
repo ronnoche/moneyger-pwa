@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTransactions, useTransfers } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import { AmountDisplay } from '@/components/ui/amount-display';
+import { SyncStatusIndicator } from '@/components/sync/sync-status-indicator';
 import { haptics } from '@/lib/haptics';
 
 export function AppHeader() {
@@ -46,6 +47,7 @@ export function AppHeader() {
             }
           />
         </div>
+        <SyncStatusIndicator />
       </div>
     </header>
   );

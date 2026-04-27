@@ -20,6 +20,7 @@ import { accountSettledBalance } from '@/lib/budget-math';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import { useTheme } from '@/app/use-theme';
 import { cn } from '@/lib/cn';
+import { SyncStatusIndicator } from '@/components/sync/sync-status-indicator';
 import type { Account } from '@/db/schema';
 
 interface SidebarProps {
@@ -314,6 +315,11 @@ export function Sidebar({
       </div>
 
       {/* Footer: theme, settings, collapse toggle */}
+      {!collapsed && (
+        <div className="px-2 pb-1">
+          <SyncStatusIndicator />
+        </div>
+      )}
       <div
         className={cn(
           'flex items-center border-t border-[color:var(--color-border)] py-2',

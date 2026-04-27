@@ -9,6 +9,7 @@ import { CommandPalette } from '@/components/ui/command-palette';
 import { ShortcutHelp } from '@/components/ui/shortcut-help';
 import { useAppHotkeys } from '@/hooks/use-app-hotkeys';
 import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed';
+import { useAuthSession } from '@/auth/session';
 import { useIsEmpty } from '@/db/hooks';
 import { isOnboardingComplete } from '@/lib/onboarding';
 
@@ -21,6 +22,7 @@ const InstallPrompt = lazy(() =>
 
 export function RootLayout() {
   const location = useLocation();
+  const { isAuthenticated, isLoading: authLoading } = useAuthSession();
   const isEmpty = useIsEmpty();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -32,6 +34,14 @@ export function RootLayout() {
   useAppHotkeys({ onOpenHelp: openHelp, onOpenPalette: openPalette });
 
   const path = location.pathname;
+  if (authLoading) {
+    return <SplashScreen />;
+  }
+  if (!isAuthenticated) {
+    const next = `${path}${location.search}${location.hash}`;
+    return <Navigate to={`/sign-in?next=${encodeURIComponent(next)}`} replace />;
+  }
+
   const onOnboarding = path === '/onboarding';
   const onSettings = path === '/settings' || path.startsWith('/settings/');
 
