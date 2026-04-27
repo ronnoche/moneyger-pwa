@@ -15,6 +15,7 @@ import {
   categoryBudgetedForMonth,
 } from '@/lib/budget-math';
 import { createTransfer } from '@/features/transfers/repo';
+import { getActiveCurrency } from '@/lib/currency-prefs';
 import { cn } from '@/lib/cn';
 
 interface Props {
@@ -120,9 +121,8 @@ export function FixThisSheet({ open, onOpenChange, viewedMonth }: Props) {
 }
 
 function formatOver(amount: number): string {
-  return amount.toLocaleString(undefined, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  });
+  const currency = getActiveCurrency();
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(
+    amount,
+  );
 }

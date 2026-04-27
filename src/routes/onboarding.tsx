@@ -11,6 +11,8 @@ import { markOnboardingComplete } from '@/lib/onboarding';
 import { createGroup } from '@/features/groups/repo';
 import { createCategory } from '@/features/categories/repo';
 import { createAccount } from '@/features/accounts/repo';
+import { useCurrency } from '@/app/use-currency';
+import { CURRENCY_OPTIONS } from '@/lib/currency-options';
 import { parseMoneyInput } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { haptics } from '@/lib/haptics';
@@ -235,6 +237,7 @@ function Dots({ count, active }: { count: number; active: number }) {
 }
 
 function StepExplain() {
+  const { currency, setCurrency } = useCurrency();
   return (
     <div className="flex flex-col items-center text-center">
       <div className="w-full max-w-sm">
@@ -245,6 +248,33 @@ function StepExplain() {
         You drop income into buckets. Spend from buckets. Whatever's left is
         waiting for its next job. Nothing untracked.
       </p>
+
+      <div className="mt-6 w-full max-w-xs text-left">
+        <label
+          htmlFor="onboarding-currency"
+          className="text-xs font-medium text-[color:var(--color-fg-muted)]"
+        >
+          Currency
+        </label>
+        <select
+          id="onboarding-currency"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+          className={cn(
+            inputClass,
+            'mt-1.5 w-full min-h-[44px] text-base',
+          )}
+        >
+          {CURRENCY_OPTIONS.map((o) => (
+            <option key={o.code} value={o.code}>
+              {o.label} ({o.code})
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs text-[color:var(--color-fg-muted)]">
+          You can change this anytime in Settings.
+        </p>
+      </div>
     </div>
   );
 }

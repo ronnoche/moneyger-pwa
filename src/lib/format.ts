@@ -1,12 +1,7 @@
-const currency = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+import { getMoneyFormatter } from '@/lib/currency-prefs';
 
 export function formatMoney(amount: number): string {
-  return currency.format(amount);
+  return getMoneyFormatter().format(amount);
 }
 
 export function formatSignedMoney(amount: number): string {

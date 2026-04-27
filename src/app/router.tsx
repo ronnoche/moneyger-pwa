@@ -10,6 +10,7 @@ import TransactionEdit from '@/routes/transactions/edit';
 import More from '@/routes/more';
 import Settings from '@/routes/settings/index';
 import SettingsAppearance from '@/routes/settings/appearance';
+import SettingsCurrency from '@/routes/settings/currency';
 import SettingsData from '@/routes/settings/data';
 
 export const router = createBrowserRouter([
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
         },
       },
       { path: 'settings/appearance', element: <SettingsAppearance /> },
+      { path: 'settings/currency', element: <SettingsCurrency /> },
       { path: 'settings/data', element: <SettingsData /> },
       {
         path: 'onboarding',

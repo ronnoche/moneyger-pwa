@@ -1,4 +1,7 @@
-import { useMemo } from 'react';
+import { useContext, useMemo } from 'react';
+import { CurrencyContext } from '@/app/currency-context';
+import { DEFAULT_CURRENCY } from '@/lib/currency-prefs';
+import { formatMoney } from '@/lib/format';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/cn';
 import { duration, ease } from '@/styles/motion';
@@ -15,8 +18,6 @@ function splitParts(value: number, currency: string) {
     style: 'currency',
     currency,
     currencyDisplay: 'symbol',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
   });
   const parts = fmt.formatToParts(Math.abs(value));
   let symbol = '';
@@ -40,9 +41,11 @@ function splitParts(value: number, currency: string) {
 export function HeroAmount({
   value,
   direction,
-  currency = 'USD',
+  currency: currencyProp,
   size = 'default',
 }: HeroAmountProps) {
+  const fromCtx = useContext(CurrencyContext);
+  const currency = currencyProp ?? fromCtx?.currency ?? DEFAULT_CURRENCY;
   const parts = useMemo(() => splitParts(value, currency), [value, currency]);
   const empty = value === 0;
   const tone =
@@ -60,7 +63,7 @@ export function HeroAmount({
             : 'var(--color-fg)',
       }}
       transition={{ duration: duration.fast, ease: ease.out }}
-      aria-label={`${direction === 'inflow' ? 'Inflow' : 'Outflow'} amount ${value.toFixed(2)} ${currency}`}
+      aria-label={`${direction === 'inflow' ? 'Inflow' : 'Outflow'} amount ${formatMoney(value)}`}
       className={cn(
         'flex items-baseline justify-center select-none',
         size === 'large' ? 'text-[4.5rem] leading-[4.5rem] sm:text-[5rem] sm:leading-[5rem]' : 'text-amount',

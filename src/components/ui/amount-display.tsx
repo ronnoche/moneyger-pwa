@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
+import { CurrencyContext } from '@/app/currency-context';
+import { DEFAULT_CURRENCY } from '@/lib/currency-prefs';
 import { useMotionValue, useMotionValueEvent, useSpring } from 'motion/react';
 import { cn } from '@/lib/cn';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
@@ -10,6 +12,7 @@ interface AmountDisplayProps {
   value: number;
   tone?: Tone;
   size?: Size;
+  /** When omitted, uses the currency from Settings (or onboarding). */
   currency?: string;
   animate?: boolean;
   className?: string;
@@ -99,11 +102,13 @@ export function AmountDisplay({
   value,
   tone = 'auto',
   size = 'md',
-  currency = 'USD',
+  currency: currencyProp,
   animate = false,
   className,
   'aria-label': ariaLabel,
 }: AmountDisplayProps) {
+  const fromCtx = useContext(CurrencyContext);
+  const currency = currencyProp ?? fromCtx?.currency ?? DEFAULT_CURRENCY;
   const reducedMotion = useReducedMotion();
   const shouldAnimate = animate && !reducedMotion;
 

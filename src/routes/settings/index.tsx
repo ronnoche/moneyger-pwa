@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import {
   ChevronRight,
+  Banknote,
   Database,
   FolderTree,
   Palette,
@@ -11,12 +12,14 @@ import type { LucideIcon } from 'lucide-react';
 import { useAccounts, useCategories, useGroups } from '@/db/hooks';
 import { PageHeader } from '@/components/layout/page-header';
 import { useTheme } from '@/app/use-theme';
+import { useCurrency } from '@/app/use-currency';
 
 export default function Settings() {
   const groups = useGroups();
   const categories = useCategories();
   const accounts = useAccounts();
   const { preference } = useTheme();
+  const { currency } = useCurrency();
 
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
@@ -49,6 +52,12 @@ export default function Settings() {
           icon={Palette}
           label="Appearance"
           detail={preference}
+        />
+        <Row
+          to="/settings/currency"
+          icon={Banknote}
+          label="Currency"
+          detail={currency}
         />
         <Row to="/settings/data" icon={Database} label="Data" />
       </Section>
