@@ -70,7 +70,25 @@ function storeSession(session: GoogleSession | null): void {
 
 function buildRedirectUri(): string {
   const fromEnv = import.meta.env.VITE_OAUTH_REDIRECT_URI?.trim();
-  if (fromEnv) return fromEnv;
+  if (fromEnv) {
+    try {
+      const configured = new URL(fromEnv);
+      const runningHost = window.location.hostname;
+      const configuredHost = configured.hostname;
+      const runningLocal =
+        runningHost === 'localhost' || runningHost === '127.0.0.1';
+      const configuredLocal =
+        configuredHost === 'localhost' || configuredHost === '127.0.0.1';
+
+      // Guard against deploying a localhost redirect URI to production.
+      if (configuredLocal && !runningLocal) {
+        return `${window.location.origin}/auth/callback`;
+      }
+    } catch {
+      // Invalid env URL -> fall through to origin-based callback.
+    }
+    return fromEnv;
+  }
   return `${window.location.origin}/auth/callback`;
 }
 
