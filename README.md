@@ -76,11 +76,12 @@ All Sheets writes go through a server proxy:
 - Create or use a Google Cloud project
 - Configure `OAuth consent screen` (Testing mode is fine)
 - Create an OAuth `Web application` client
-- Register authorized redirect URIs (one per environment):
+- Register **authorized redirect URIs** (one full URL per line, no typos, no extra path segments). This app’s route is **`/auth/callback` only** — not `.../api/auth/callback/google` (that pattern is for other frameworks).
   - `http://localhost:8888/auth/callback` (local `netlify dev`)
   - `http://localhost:5173/auth/callback` (plain `vite` dev)
-  - `https://<your-netlify-site>.netlify.app/auth/callback`
-- Register authorized JavaScript origins for the same hosts
+  - `https://<your-netlify-site>.netlify.app/auth/callback` (e.g. `...moneyger-pwa...`)
+  - `https://<your-custom-domain>/auth/callback` if you use a custom domain in front of Netlify
+- Register **authorized JavaScript origins** (scheme + host + port only, no path): e.g. `http://localhost:5173`, `https://<site>.netlify.app`, `https://<custom-domain>`
 - Add QA accounts to `OAuth consent screen -> Test users`
 
 ### 2) Environment variables

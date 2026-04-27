@@ -21,3 +21,6 @@ public/maskable-*.png
 public/apple-touch-icon-*.png
 public/favicon.ico
 dev-dist
+
+# Local Netlify folder
+.netlify
