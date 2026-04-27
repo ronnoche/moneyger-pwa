@@ -89,6 +89,25 @@ function buildAuthUrl(state: string): string {
   return url.toString();
 }
 
+async function readJsonOrThrow(
+  response: Response,
+  fallbackMessage: string,
+): Promise<unknown> {
+  const text = await response.text();
+  if (!text.trim()) {
+    throw new Error(
+      `${fallbackMessage}. Empty response from auth endpoint. If you are running local dev, start with "netlify dev" so /.netlify/functions/* routes are available.`,
+    );
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new Error(
+      `${fallbackMessage}. Non-JSON response from auth endpoint. If you are running local dev, start with "netlify dev" so /.netlify/functions/* routes are available.`,
+    );
+  }
+}
+
 async function hasAnyLocalData(): Promise<boolean> {
   const counts = await Promise.all([
     db.transactions.count(),
@@ -136,7 +155,10 @@ async function refreshAccessToken(session: GoogleSession): Promise<GoogleSession
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken: session.refreshToken }),
   });
-  const payload = (await response.json()) as
+  const payload = (await readJsonOrThrow(
+    response,
+    'Failed to refresh token',
+  )) as
     | {
         ok: true;
         accessToken: string;
@@ -218,7 +240,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         redirectUri: buildRedirectUri(),
       }),
     });
-    const payload = (await response.json()) as
+  const payload = (await readJsonOrThrow(
+    response,
+    'Google sign-in failed',
+  )) as
       | {
           ok: true;
           accessToken: string;

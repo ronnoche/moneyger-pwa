@@ -20,6 +20,7 @@ import { accountSettledBalance } from '@/lib/budget-math';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import { useTheme } from '@/app/use-theme';
 import { cn } from '@/lib/cn';
+import { AppLogo } from '@/components/app-logo';
 import { SyncStatusIndicator } from '@/components/sync/sync-status-indicator';
 import type { Account } from '@/db/schema';
 
@@ -107,8 +108,11 @@ export function Sidebar({
           collapsed ? 'justify-center px-0' : 'px-3',
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[color:var(--color-brand-600)] text-white">
-          <span className="text-sm font-semibold">A</span>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-[color:var(--color-border)] bg-[color:var(--color-surface-2)]">
+          <AppLogo
+            className="h-7 w-7"
+            alt=""
+          />
         </div>
         {!collapsed && (
           <div className="flex min-w-0 flex-1 flex-col">

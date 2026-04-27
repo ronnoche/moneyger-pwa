@@ -12,7 +12,7 @@
     "test:run": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "pwa-assets": "pwa-assets-generator --preset minimal-2023 public/icon-source.svg"
+    "pwa-assets": "pwa-assets-generator --preset minimal-2023 public/logo.svg"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

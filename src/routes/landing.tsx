@@ -1,14 +1,16 @@
 import { useSearchParams } from 'react-router';
-import { Cloud, Lock, Table2 } from 'lucide-react';
+import { Cloud, Smartphone, Table2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AppLogo } from '@/components/app-logo';
 import { useAuthSession } from '@/auth/session';
 import { cn } from '@/lib/cn';
 
 const features = [
   {
     icon: Table2,
-    title: 'Google Sheets sync',
-    description: 'Push and pull your budget with the spreadsheet you already use.',
+    title: 'Sheets sync with your Google account',
+    description:
+      'Sign in with Google and push or pull your budget with the spreadsheet you choose.',
   },
   {
     icon: Cloud,
@@ -16,9 +18,10 @@ const features = [
     description: 'Local data on your device. Sign in when you want cloud sync.',
   },
   {
-    icon: Lock,
-    title: 'Your Google account',
-    description: 'OAuth with Google. No separate password for Moneyger.',
+    icon: Smartphone,
+    title: 'Install as a PWA',
+    description:
+      'Add Moneyger to your home screen for an app-like experience on phone or desktop.',
   },
 ] as const;
 
@@ -43,10 +46,13 @@ export default function LandingPage() {
 
       <main className="relative z-10 flex flex-1 flex-col justify-center px-4 py-16 sm:px-6">
         <div className="mx-auto w-full max-w-lg sm:max-w-xl">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--color-brand-600)] dark:text-[color:var(--color-brand-500)]">
-            Moneyger
-          </p>
-          <h1 className="mt-3 text-center text-3xl font-semibold tracking-tight sm:text-4xl">
+          <div className="flex justify-center">
+            <AppLogo
+              className="h-16 w-auto max-w-[min(100%,240px)] sm:h-20"
+              alt="Moneyger — Smart Financial Management"
+            />
+          </div>
+          <h1 className="mt-5 text-center text-3xl font-semibold tracking-tight sm:mt-6 sm:text-4xl">
             Budget in the app.
             <br />
             <span className="text-[color:var(--color-fg-muted)]">Sync in Sheets.</span>

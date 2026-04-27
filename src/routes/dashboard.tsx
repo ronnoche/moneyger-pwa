@@ -37,6 +37,7 @@ import { useBudgetViewMode } from '@/hooks/use-budget-view-mode';
 import { useLargeScreen } from '@/hooks/use-large-screen';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/cn';
+import { AppLogo } from '@/components/app-logo';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -127,6 +128,9 @@ export default function Dashboard() {
   return (
     <div className="lg:flex lg:items-start">
       <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-4 lg:max-w-4xl lg:flex-1 lg:py-6 lg:pr-6">
+      <div className="flex justify-center pb-1 lg:hidden">
+        <AppLogo className="h-11 w-11" alt="Moneyger" />
+      </div>
       <MonthNav month={viewMonth} onChange={setViewMonth} />
 
       <div className="flex justify-center">
