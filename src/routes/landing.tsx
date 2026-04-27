@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 import { Cloud, Smartphone, Table2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,26 @@ export default function LandingPage() {
   const nextPath = searchParams.get('next') ?? '/';
   const { isLoading, signInWithGoogle } = useAuthSession();
 
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('dark');
+
+    return () => {
+      const stored = localStorage.getItem('moneyger:theme');
+      const preference =
+        stored === 'dark' || stored === 'light' || stored === 'system'
+          ? stored
+          : 'system';
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const shouldBeDark = preference === 'dark' || (preference === 'system' && systemDark);
+      if (!shouldBeDark) {
+        root.classList.remove('dark');
+      }
+    };
+  }, []);
+
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
+    <div className="relative flex min-h-dvh flex-col overflow-hidden bg-[#171B4C] text-[color:var(--color-fg)]">
       <div
         className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-25"
         aria-hidden

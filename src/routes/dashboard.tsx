@@ -126,7 +126,7 @@ export default function Dashboard() {
   const filterActive = filter !== 'all' || search.trim().length > 0;
 
   return (
-    <div className="lg:flex lg:items-start">
+    <div className="lg:flex lg:items-start dark:bg-[#171B4C]">
       <div className="mx-auto w-full max-w-xl space-y-4 px-4 py-4 lg:max-w-4xl lg:flex-1 lg:py-6 lg:pr-6">
       <div className="flex justify-center pb-1 lg:hidden">
         <AppLogo className="h-11 w-11" alt="Moneyger" />
