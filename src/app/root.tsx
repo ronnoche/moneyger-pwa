@@ -38,8 +38,16 @@ export function RootLayout() {
     return <SplashScreen />;
   }
   if (!isAuthenticated) {
-    const next = `${path}${location.search}${location.hash}`;
-    return <Navigate to={`/sign-in?next=${encodeURIComponent(next)}`} replace />;
+    if (path !== '/') {
+      const next = `${path}${location.search}${location.hash}`;
+      return <Navigate to={`/?next=${encodeURIComponent(next)}`} replace />;
+    }
+    return (
+      <div className="flex min-h-dvh flex-col bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
+        <Outlet />
+        <Toaster />
+      </div>
+    );
   }
 
   const onOnboarding = path === '/onboarding';

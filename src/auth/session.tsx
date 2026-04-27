@@ -69,6 +69,8 @@ function storeSession(session: GoogleSession | null): void {
 }
 
 function buildRedirectUri(): string {
+  const fromEnv = import.meta.env.VITE_OAUTH_REDIRECT_URI?.trim();
+  if (fromEnv) return fromEnv;
   return `${window.location.origin}/auth/callback`;
 }
 

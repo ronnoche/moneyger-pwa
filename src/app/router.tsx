@@ -1,9 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { RootLayout } from './root';
-import SignInPage from '@/routes/sign-in';
+import SignInRedirect from '@/routes/sign-in';
 import AuthCallbackPage from '@/routes/auth-callback';
+import HomeRoute from '@/routes/home';
 import DevLogin from '@/routes/dev/login';
-import Dashboard from '@/routes/dashboard';
 import TransactionsList from '@/routes/transactions/list';
 import TransactionNew from '@/routes/transactions/new';
 import TransactionEdit from '@/routes/transactions/edit';
@@ -14,13 +14,13 @@ import SettingsCurrency from '@/routes/settings/currency';
 import SettingsData from '@/routes/settings/data';
 
 export const router = createBrowserRouter([
-  { path: '/sign-in', element: <SignInPage /> },
+  { path: '/sign-in', element: <SignInRedirect /> },
   { path: '/auth/callback', element: <AuthCallbackPage /> },
   { path: '/dev/login', element: <DevLogin /> },
   {
     element: <RootLayout />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <HomeRoute /> },
       { path: 'transactions', element: <TransactionsList /> },
       { path: 'transactions/new', element: <TransactionNew /> },
       { path: 'transactions/:id/edit', element: <TransactionEdit /> },
