@@ -7,6 +7,7 @@ import { PageTransition } from '@/components/layout/page-transition';
 import { Toaster } from '@/components/ui/toaster';
 import { CommandPalette } from '@/components/ui/command-palette';
 import { ShortcutHelp } from '@/components/ui/shortcut-help';
+import { SheetDeletedBanner } from '@/components/sync/sheet-deleted-banner';
 import { useAppHotkeys } from '@/hooks/use-app-hotkeys';
 import { useSidebarCollapsed } from '@/hooks/use-sidebar-collapsed';
 import { useAuthSession } from '@/auth/session';
@@ -70,6 +71,7 @@ export function RootLayout() {
   if (hideChrome) {
     return (
       <div className="flex min-h-dvh flex-col bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
+        <SheetDeletedBanner />
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
@@ -90,6 +92,7 @@ export function RootLayout() {
         <div className="lg:hidden">
           <AppHeader />
         </div>
+        <SheetDeletedBanner />
 
         <main className="safe-pl safe-pr flex-1 overflow-y-auto pb-24 lg:pb-0">
           <PageTransition />
@@ -114,7 +117,7 @@ export function RootLayout() {
 function SplashScreen() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[color:var(--color-bg)] text-[color:var(--color-fg-muted)]">
-      <div className="text-sm">Loading...</div>
+      <div className="text-sm">Connecting to your Google Sheet…</div>
     </div>
   );
 }

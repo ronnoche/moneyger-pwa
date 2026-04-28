@@ -8,7 +8,9 @@ import {
   type ReactNode,
 } from 'react';
 import { db } from '@/db/db';
-import { fullSync } from '@/lib/sync';
+import { upsertUser } from '@/lib/registry-client';
+import { resolveUserSheetId } from '@/lib/sheet-resolver';
+import { fullSync, pullFullFromSheet } from '@/lib/sync';
 
 const SESSION_STORAGE_KEY = 'moneyger:google-session';
 const OAUTH_STATE_KEY = 'moneyger:oauth-state';
@@ -142,12 +144,28 @@ async function maybeRunInitialFullSync(session: GoogleSession): Promise<void> {
   const ownerKey = session.sub ?? session.email ?? 'unknown';
   const syncDoneKey = `${FULL_SYNC_DONE_PREFIX}${ownerKey}`;
   try {
-    if (localStorage.getItem(syncDoneKey) === 'true') return;
+    await resolveUserSheetId(session.accessToken, ownerKey);
+    void upsertUser(session.accessToken);
+
     const hasData = await hasAnyLocalData();
+    const syncDone = localStorage.getItem(syncDoneKey) === 'true';
+
+    if (syncDone && hasData) return;
+
     if (!hasData) {
-      localStorage.setItem(syncDoneKey, 'true');
+      const pullResult = await pullFullFromSheet();
+      if (pullResult.ok) {
+        localStorage.setItem(syncDoneKey, 'true');
+        return;
+      }
+      console.error('[Moneyger Sync Error]', {
+        operation: 'pullFullFromSheet',
+        error: pullResult.error ?? 'Initial pull from Google Sheets failed',
+        code: pullResult.code,
+      });
       return;
     }
+
     const result = await fullSync();
     if (result.ok) {
       localStorage.setItem(syncDoneKey, 'true');
@@ -156,11 +174,12 @@ async function maybeRunInitialFullSync(session: GoogleSession): Promise<void> {
     console.error('[Moneyger Sync Error]', {
       operation: 'fullSync',
       error: result.error ?? 'Initial full sync failed',
+      code: result.code,
     });
   } catch (error) {
     console.error('[Moneyger Sync Error]', {
-      operation: 'fullSync',
-      error: error instanceof Error ? error.message : 'Initial full sync failed',
+      operation: 'initialSync',
+      error: error instanceof Error ? error.message : 'Initial sync failed',
     });
   }
 }
@@ -217,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         setSession(refreshed);
         storeSession(refreshed);
+        await maybeRunInitialFullSync(refreshed);
       } catch {
         if (!active) return;
         setSession(null);
@@ -296,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.removeItem(OAUTH_STATE_KEY);
     setSession(nextSession);
     storeSession(nextSession);
-    void maybeRunInitialFullSync(nextSession);
+    await maybeRunInitialFullSync(nextSession);
   }, []);
 
   const signOut = useCallback(() => {
