@@ -1,6 +1,7 @@
 import { endOfMonth, parseISO, startOfMonth } from 'date-fns';
 import { useMemo } from 'react';
 import { AmountDisplay } from '@/components/ui/amount-display';
+import { useAccounts } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import type { Transaction, Transfer } from '@/db/schema';
 import { cn } from '@/lib/cn';
@@ -13,6 +14,7 @@ interface MonthSummaryProps {
 }
 
 export function MonthSummary({ month, txns, tfrs, className }: MonthSummaryProps) {
+  const accounts = useAccounts();
   const { income, spent, leftToAssign } = useMemo(() => {
     const start = startOfMonth(month);
     const end = endOfMonth(month);
@@ -27,9 +29,11 @@ export function MonthSummary({ month, txns, tfrs, className }: MonthSummaryProps
     return {
       income: inMonthIncome,
       spent: inMonthSpent,
-      leftToAssign: availableToBudget(txns, tfrs),
+      leftToAssign: accounts
+        ? availableToBudget(txns, tfrs, accounts)
+        : 0,
     };
-  }, [month, txns, tfrs]);
+  }, [month, txns, tfrs, accounts]);
 
   return (
     <div

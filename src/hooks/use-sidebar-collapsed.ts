@@ -3,11 +3,13 @@ import { useCallback, useEffect, useState } from 'react';
 const KEY = 'moneyger:sidebar-collapsed';
 
 function read(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') return true;
   try {
-    return window.localStorage.getItem(KEY) === '1';
+    const v = window.localStorage.getItem(KEY);
+    if (v === null) return true;
+    return v === '1';
   } catch {
-    return false;
+    return true;
   }
 }
 

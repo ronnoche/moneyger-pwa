@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Sheet } from '@/components/ui/sheet';
-import { useCategories, useGroups } from '@/db/hooks';
+import { useAccounts, useCategories, useGroups } from '@/db/hooks';
 import { db } from '@/db/db';
 import { AVAILABLE_TO_BUDGET, availableToBudget, categoryAvailable } from '@/lib/budget-math';
 import { cn } from '@/lib/cn';
@@ -79,6 +79,7 @@ export function CategorySheet({
   const [query, setQuery] = useState('');
   const groups = useGroups();
   const categories = useCategories();
+  const accounts = useAccounts();
   const txns = useLiveQuery(() => db.transactions.toArray(), []);
   const tfrs = useLiveQuery(() => db.transfers.toArray(), []);
 
@@ -88,8 +89,11 @@ export function CategorySheet({
   );
 
   const atb = useMemo(
-    () => availableToBudget(txns ?? [], tfrs ?? []),
-    [txns, tfrs],
+    () =>
+      accounts
+        ? availableToBudget(txns ?? [], tfrs ?? [], accounts)
+        : 0,
+    [accounts, txns, tfrs],
   );
 
   const availableById = useMemo(() => {

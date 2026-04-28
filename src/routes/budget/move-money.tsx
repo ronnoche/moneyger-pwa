@@ -1,6 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { useCategories, useTransactions, useTransfers } from '@/db/hooks';
+import {
+  useAccounts,
+  useCategories,
+  useTransactions,
+  useTransfers,
+} from '@/db/hooks';
 import { createTransfer } from '@/features/transfers/repo';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -26,6 +31,7 @@ type PickerTarget = 'from' | 'to' | null;
 export default function MoveMoney() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const accounts = useAccounts();
   const txns = useTransactions();
   const tfrs = useTransfers();
   const categories = useCategories();
@@ -40,19 +46,19 @@ export default function MoveMoney() {
   const [errors, setErrors] = useState<{ [k: string]: string }>({});
 
   const fromAvailable = useMemo(() => {
-    if (!txns || !tfrs) return 0;
+    if (!txns || !tfrs || !accounts) return 0;
     if (!fromId) return 0;
     return fromId === AVAILABLE_TO_BUDGET
-      ? availableToBudget(txns, tfrs)
+      ? availableToBudget(txns, tfrs, accounts)
       : categoryAvailable(fromId, txns, tfrs);
-  }, [txns, tfrs, fromId]);
+  }, [accounts, txns, tfrs, fromId]);
 
   const toAvailable = useMemo(() => {
-    if (!txns || !tfrs || !toId) return 0;
+    if (!txns || !tfrs || !accounts || !toId) return 0;
     return toId === AVAILABLE_TO_BUDGET
-      ? availableToBudget(txns, tfrs)
+      ? availableToBudget(txns, tfrs, accounts)
       : categoryAvailable(toId, txns, tfrs);
-  }, [txns, tfrs, toId]);
+  }, [accounts, txns, tfrs, toId]);
 
   const fromLabel = useLabel(fromId, categories);
   const toLabel = useLabel(toId, categories);

@@ -27,7 +27,9 @@ export default function AccountsList() {
 
   const netCash =
     accounts && txns
-      ? accounts.reduce((acc, a) => acc + accountSettledBalance(a.id, txns), 0)
+      ? accounts
+          .filter((a) => a.accountCategory !== 'tracking')
+          .reduce((acc, a) => acc + accountSettledBalance(a.id, txns), 0)
       : 0;
 
   return (

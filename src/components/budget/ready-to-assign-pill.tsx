@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, useAnimation } from 'motion/react';
 import { CheckCircle2, ChevronDown, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTransactions, useTransfers } from '@/db/hooks';
+import { useAccounts, useTransactions, useTransfers } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import { AutoAssignDropdown } from '@/components/budget/auto-assign-dropdown';
@@ -26,6 +26,7 @@ function classify(atb: number | null): AtbState {
 }
 
 export function ReadyToAssignPill({ viewedMonth, onPresetApplied }: Props) {
+  const accounts = useAccounts();
   const txns = useTransactions();
   const tfrs = useTransfers();
   const reduced = useReducedMotion();
@@ -33,9 +34,9 @@ export function ReadyToAssignPill({ viewedMonth, onPresetApplied }: Props) {
   const [fixThisOpen, setFixThisOpen] = useState(false);
 
   const atb = useMemo(() => {
-    if (!txns || !tfrs) return null;
-    return availableToBudget(txns, tfrs);
-  }, [txns, tfrs]);
+    if (!txns || !tfrs || !accounts) return null;
+    return availableToBudget(txns, tfrs, accounts);
+  }, [accounts, txns, tfrs]);
 
   const state = classify(atb);
 

@@ -4,7 +4,18 @@ import {
   parseISO,
   startOfMonth,
 } from 'date-fns';
-import type { Category, Transaction, Transfer } from '@/db/schema';
+import type { Account, Category, Transaction, Transfer } from '@/db/schema';
+
+/** IDs of accounts excluded from Ready to Assign math (transactions on these accounts do not affect `available_to_budget`). */
+export function excludedFromReadyToAssignAccountIds(
+  accounts?: Pick<Account, 'id' | 'accountCategory'>[],
+): Set<string> {
+  return new Set(
+    (accounts ?? [])
+      .filter((a) => a.accountCategory === 'tracking')
+      .map((a) => a.id),
+  );
+}
 
 export const AVAILABLE_TO_BUDGET = 'available_to_budget' as const;
 
@@ -67,14 +78,14 @@ export function categoryBudgetedForMonth(
 export function availableToBudget(
   txns: Transaction[],
   tfrs: Transfer[],
+  accounts?: Pick<Account, 'id' | 'accountCategory'>[],
 ): number {
   const id = AVAILABLE_TO_BUDGET;
-  const inflows = sum(
-    txns.filter((t) => t.categoryId === id).map((t) => t.inflow),
-  );
-  const outflows = sum(
-    txns.filter((t) => t.categoryId === id).map((t) => t.outflow),
-  );
+  const skipAccountIds = excludedFromReadyToAssignAccountIds(accounts);
+  const inAtb = (t: Transaction) =>
+    t.categoryId === id && !skipAccountIds.has(t.accountId);
+  const inflows = sum(txns.filter(inAtb).map((t) => t.inflow));
+  const outflows = sum(txns.filter(inAtb).map((t) => t.outflow));
   const tfrIn = sum(
     tfrs.filter((t) => t.toCategoryId === id).map((t) => t.amount),
   );

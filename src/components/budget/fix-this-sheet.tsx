@@ -5,6 +5,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import {
+  useAccounts,
   useCategories,
   useTransactions,
   useTransfers,
@@ -25,15 +26,16 @@ interface Props {
 }
 
 export function FixThisSheet({ open, onOpenChange, viewedMonth }: Props) {
+  const accounts = useAccounts();
   const categories = useCategories();
   const transactions = useTransactions();
   const transfers = useTransfers();
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const atb = useMemo(() => {
-    if (!transactions || !transfers) return 0;
-    return availableToBudget(transactions, transfers);
-  }, [transactions, transfers]);
+    if (!transactions || !transfers || !accounts) return 0;
+    return availableToBudget(transactions, transfers, accounts);
+  }, [accounts, transactions, transfers]);
 
   const rows = useMemo(() => {
     if (!categories || !transfers) return [];

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router';
-import { useTransactions, useTransfers } from '@/db/hooks';
+import { useAccounts, useTransactions, useTransfers } from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import { AmountDisplay } from '@/components/ui/amount-display';
 import { SyncStatusIndicator } from '@/components/sync/sync-status-indicator';
@@ -9,14 +9,15 @@ import { haptics } from '@/lib/haptics';
 
 export function AppHeader() {
   const { pathname } = useLocation();
+  const accounts = useAccounts();
   const txns = useTransactions();
   const tfrs = useTransfers();
   const showBrandMark = pathname !== '/';
 
   const atb = useMemo(() => {
-    if (!txns || !tfrs) return null;
-    return availableToBudget(txns, tfrs);
-  }, [txns, tfrs]);
+    if (!txns || !tfrs || !accounts) return null;
+    return availableToBudget(txns, tfrs, accounts);
+  }, [accounts, txns, tfrs]);
 
   const prevAtb = useRef<number | null>(null);
   useEffect(() => {

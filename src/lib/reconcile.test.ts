@@ -100,6 +100,26 @@ describe('reconcile', () => {
     const adjustment = await testDb.transactions.get(event.adjustmentTxnId!);
     expect(adjustment?.memo).toBe('Reconciliation Balance Adjustment');
     expect(adjustment?.status).toBe('reconciled');
+    expect(adjustment?.categoryId).toBe(AVAILABLE_TO_BUDGET);
+  });
+
+  it('tracking account adjustment uses off-budget category', async () => {
+    await testDb.accounts.put(
+      account({
+        id: 'acct-tracking',
+        name: 'Car',
+        accountCategory: 'tracking',
+        subtype: 'asset',
+        onBudget: false,
+      }),
+    );
+    await testDb.transactions.add(
+      txn({ id: 't-track', accountId: 'acct-tracking', inflow: 1000 }),
+    );
+    const event = await commitReconcile('acct-tracking', 900);
+    expect(event.adjustmentTxnId).toBeTruthy();
+    const adjustment = await testDb.transactions.get(event.adjustmentTxnId!);
+    expect(adjustment?.categoryId).toBe('off_budget');
   });
 
   it('undo within 24 hours reverts reconcile and removes adjustment', async () => {

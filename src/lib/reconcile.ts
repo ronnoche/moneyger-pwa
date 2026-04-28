@@ -68,12 +68,15 @@ export async function commitReconcile(
         .toArray();
 
       if (preview.gap !== 0) {
+        const acct = await db.accounts.get(accountId);
+        const adjustmentCategory =
+          acct?.accountCategory === 'tracking' ? 'off_budget' : AVAILABLE_TO_BUDGET;
         const adjustment: Transaction = {
           id: newId(),
           date: now.slice(0, 10),
           outflow: preview.gap < 0 ? Math.abs(preview.gap) : 0,
           inflow: preview.gap > 0 ? preview.gap : 0,
-          categoryId: AVAILABLE_TO_BUDGET,
+          categoryId: adjustmentCategory,
           accountId,
           memo: 'Reconciliation Balance Adjustment',
           status: 'cleared',

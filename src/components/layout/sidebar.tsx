@@ -72,7 +72,9 @@ export function Sidebar({
 
   const netCash = useMemo(() => {
     if (!accounts || !txns) return 0;
-    return accounts.reduce((acc, a) => acc + accountSettledBalance(a.id, txns), 0);
+    return accounts
+      .filter((a) => a.accountCategory !== 'tracking')
+      .reduce((acc, a) => acc + accountSettledBalance(a.id, txns), 0);
   }, [accounts, txns]);
 
   const grouped = useMemo(() => {
@@ -227,7 +229,13 @@ export function Sidebar({
                 : 0;
 
               return (
-                <li key={groupKey}>
+                <li
+                  key={groupKey}
+                  className={cn(
+                    groupKey === 'tracking' &&
+                      'mt-1.5 border-t border-[color:var(--color-border)] pt-2',
+                  )}
+                >
                   {!collapsed && (
                     <button
                       type="button"

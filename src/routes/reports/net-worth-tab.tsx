@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { useNetWorthEntries } from '@/db/hooks';
+import { useAccounts, useNetWorthEntries, useTransactions } from '@/db/hooks';
 import {
   createNetWorthEntry,
   deleteNetWorthEntry,
@@ -21,6 +21,7 @@ import {
   type NetWorthFormValues,
 } from '@/features/net-worth/schema';
 import { computeNetWorthSeries } from '@/lib/reports';
+import { accountSettledBalance } from '@/lib/budget-math';
 import { formatMoney } from '@/lib/format';
 import { Field, inputClass } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,8 @@ import { todayISO } from '@/lib/dates';
 import { cn } from '@/lib/cn';
 
 export default function NetWorthTab() {
+  const accounts = useAccounts();
+  const txns = useTransactions();
   const entries = useNetWorthEntries();
   const [addOpen, setAddOpen] = useState(false);
 
@@ -40,7 +43,23 @@ export default function NetWorthTab() {
     [entries],
   );
 
-  const latest = series[series.length - 1];
+  const liveNetWorth = useMemo(() => {
+    if (!accounts || !txns) return null;
+    let assets = 0;
+    let debts = 0;
+    for (const account of accounts) {
+      const balance = accountSettledBalance(account.id, txns);
+      if (balance >= 0) assets += balance;
+      else debts += Math.abs(balance);
+    }
+    return {
+      assets,
+      debts,
+      net: assets - debts,
+    };
+  }, [accounts, txns]);
+
+  const latest = liveNetWorth ?? series[series.length - 1];
 
   return (
     <div className="space-y-4">
@@ -65,7 +84,7 @@ export default function NetWorthTab() {
         </div>
       ) : (
         <p className="rounded-xl bg-white p-4 text-sm text-ink-500 shadow-sm dark:bg-ink-800">
-          Log at least two months of entries to see the chart.
+          Log at least two months of entries to see historical trend.
         </p>
       )}
 

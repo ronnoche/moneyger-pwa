@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { useCategories, useTransactions, useTransfers } from '@/db/hooks';
+import {
+  useAccounts,
+  useCategories,
+  useTransactions,
+  useTransfers,
+} from '@/db/hooks';
 import { availableToBudget } from '@/lib/budget-math';
 import { runPreset } from '@/lib/auto-assign';
 import type { PresetInput, PresetResult } from '@/lib/auto-assign';
@@ -15,18 +20,20 @@ export function usePresetPreview(
   viewedMonth: Date,
   scopedCategoryIds?: string[],
 ): PresetResult {
+  const accounts = useAccounts();
   const categories = useCategories();
   const transactions = useTransactions();
   const transfers = useTransfers();
 
   return useMemo(() => {
-    if (!categories || !transactions || !transfers || !presetId) return EMPTY;
+    if (!categories || !transactions || !transfers || !accounts || !presetId)
+      return EMPTY;
     const input: PresetInput = {
       categories,
       viewedMonth,
       transactions,
       transfers,
-      availableToBudget: availableToBudget(transactions, transfers),
+      availableToBudget: availableToBudget(transactions, transfers, accounts),
       scopedCategoryIds,
     };
     try {
@@ -34,5 +41,13 @@ export function usePresetPreview(
     } catch {
       return EMPTY;
     }
-  }, [presetId, viewedMonth, scopedCategoryIds, categories, transactions, transfers]);
+  }, [
+    presetId,
+    viewedMonth,
+    scopedCategoryIds,
+    accounts,
+    categories,
+    transactions,
+    transfers,
+  ]);
 }

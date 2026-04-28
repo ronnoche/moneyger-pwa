@@ -54,6 +54,23 @@ describe('budget-math', () => {
     expect(availableToBudget(txns, [])).toBe(5000);
   });
 
+  it('ignores Ready to Assign category on tracking accounts', () => {
+    const trackingId = 'acct-tracking';
+    const txns = [
+      txn({ inflow: 5000 }),
+      txn({
+        accountId: trackingId,
+        inflow: 1_000_000,
+        categoryId: AVAILABLE_TO_BUDGET,
+      }),
+    ];
+    const accounts = [
+      { id: ACCOUNT_ID, accountCategory: 'cash' as const },
+      { id: trackingId, accountCategory: 'tracking' as const },
+    ];
+    expect(availableToBudget(txns, [], accounts)).toBe(5000);
+  });
+
   it('transfer from ATB to category shifts balances', () => {
     const txns = [txn({ inflow: 5000, categoryId: AVAILABLE_TO_BUDGET })];
     const tfrs = [
