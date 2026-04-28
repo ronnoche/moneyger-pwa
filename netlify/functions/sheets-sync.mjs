@@ -31,7 +31,9 @@ async function verifyAccessToken(accessToken) {
   });
   if (!res.ok) return null;
   const info = await res.json();
-  if (!info.email || !info.email_verified) return null;
+  if (!info.email) return null;
+  // Reject only when Google explicitly marks the email as unverified.
+  if (info.email_verified === false) return null;
   return { email: String(info.email).toLowerCase(), sub: info.sub ?? null };
 }
 

@@ -77,19 +77,26 @@ export async function rehomeCategoryTransactions(
 ): Promise<number> {
   if (fromCategoryId === toCategoryId) return 0;
   let moved = 0;
+  const syncAfter: { id: string; categoryId: string; updatedAt: string }[] = [];
   await db
     .transaction('rw', db.transactions, async () => {
       const txns = await db.transactions.where('categoryId').equals(fromCategoryId).toArray();
       for (const txn of txns) {
+        const updatedAt = new Date().toISOString();
         await db.transactions.update(txn.id, {
           categoryId: toCategoryId,
-          updatedAt: new Date().toISOString(),
+          updatedAt,
+        });
+        syncAfter.push({
+          id: txn.id,
+          categoryId: toCategoryId,
+          updatedAt,
         });
         moved += 1;
       }
     });
-  if (moved > 0) {
-    syncInBackground('update', 'categories', { id: fromCategoryId, movedTo: toCategoryId });
+  for (const patch of syncAfter) {
+    syncInBackground('update', 'transactions', patch);
   }
   return moved;
 }

@@ -7,7 +7,6 @@ import DevLogin from '@/routes/dev/login';
 import TransactionsList from '@/routes/transactions/list';
 import TransactionNew from '@/routes/transactions/new';
 import TransactionEdit from '@/routes/transactions/edit';
-import More from '@/routes/more';
 import Settings from '@/routes/settings/index';
 import SettingsAppearance from '@/routes/settings/appearance';
 import SettingsCurrency from '@/routes/settings/currency';
@@ -52,7 +51,7 @@ export const router = createBrowserRouter([
           return { Component: mod.default };
         },
       },
-      { path: 'more', element: <More /> },
+      { path: 'more', element: <Navigate to="/settings" replace /> },
       { path: 'settings', element: <Settings /> },
       {
         path: 'settings/groups',

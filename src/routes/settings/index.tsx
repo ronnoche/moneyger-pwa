@@ -4,11 +4,13 @@ import {
   Banknote,
   Database,
   FolderTree,
+  LogOut,
   Palette,
   Tags,
   Wallet,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useAuthSession } from '@/auth/session';
 import { useAccounts, useCategories, useGroups } from '@/db/hooks';
 import { PageHeader } from '@/components/layout/page-header';
 import { useTheme } from '@/app/use-theme';
@@ -18,12 +20,13 @@ export default function Settings() {
   const groups = useGroups();
   const categories = useCategories();
   const accounts = useAccounts();
+  const { signOut } = useAuthSession();
   const { preference } = useTheme();
   const { currency } = useCurrency();
 
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
-      <PageHeader title="Settings" backTo="/more" />
+      <PageHeader title="Settings" backTo="/" />
 
       <Section label="Budget">
         <Row
@@ -60,6 +63,7 @@ export default function Settings() {
           detail={currency}
         />
         <Row to="/settings/data" icon={Database} label="Data" />
+        <Row icon={LogOut} label="Log out" onClick={signOut} />
       </Section>
     </div>
   );
@@ -89,27 +93,44 @@ function Row({
   icon: Icon,
   label,
   detail,
+  onClick,
 }: {
-  to: string;
+  to?: string;
   icon: LucideIcon;
   label: string;
   detail?: string;
+  onClick?: () => void;
 }) {
+  const rowClassName =
+    'flex items-center gap-3 px-4 py-3 active:bg-ink-100 dark:active:bg-ink-700';
+  const content = (
+    <>
+      <Icon size={20} className="text-ink-500" />
+      <span className="flex-1 text-sm">{label}</span>
+      {detail && (
+        <span className="text-sm capitalize tabular-nums text-ink-400">
+          {detail}
+        </span>
+      )}
+      <ChevronRight size={18} className="text-ink-400" />
+    </>
+  );
+
   return (
     <li>
-      <Link
-        to={to}
-        className="flex items-center gap-3 px-4 py-3 active:bg-ink-100 dark:active:bg-ink-700"
-      >
-        <Icon size={20} className="text-ink-500" />
-        <span className="flex-1 text-sm">{label}</span>
-        {detail && (
-          <span className="text-sm capitalize tabular-nums text-ink-400">
-            {detail}
-          </span>
-        )}
-        <ChevronRight size={18} className="text-ink-400" />
-      </Link>
+      {to ? (
+        <Link to={to} className={rowClassName}>
+          {content}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onClick}
+          className={`${rowClassName} w-full text-left`}
+        >
+          {content}
+        </button>
+      )}
     </li>
   );
 }
