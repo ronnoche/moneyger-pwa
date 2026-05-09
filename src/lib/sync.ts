@@ -1,4 +1,4 @@
-import { db } from '@/db/db';
+import { db, newId, nowISO } from '@/db/db';
 import { resolveUserSheetId, clearSheetIdMemCache } from '@/lib/sheet-resolver';
 import {
   deleteRowById,
@@ -6,6 +6,7 @@ import {
   SheetMissingError,
   upsertRow,
 } from '@/lib/google-sheets-api';
+import { setLastSyncedAt, setLastSyncError } from '@/lib/sync-meta';
 import type {
   Account,
   AccountCategory,
@@ -16,6 +17,7 @@ import type {
   GoalCadence,
   Group,
   NetWorthEntry,
+  OutboxEntry,
   Transaction,
   Transfer,
   TxnStatus,
@@ -55,11 +57,13 @@ export function isSheetMissingSyncError(message: string): boolean {
   );
 }
 
-type SyncStatus =
+export type SyncStatusCode = 'sheet_missing' | 'sheet_renamed';
+
+export type SyncStatus =
   | { state: 'idle' }
-  | { state: 'syncing' }
+  | { state: 'syncing'; pendingCount?: number }
   | { state: 'success'; syncedAt: string }
-  | { state: 'error'; error: string; code?: 'sheet_missing' };
+  | { state: 'error'; error: string; code?: SyncStatusCode };
 
 const SESSION_STORAGE_KEY = 'moneyger:google-session';
 const listeners = new Set<(status: SyncStatus) => void>();
@@ -82,7 +86,7 @@ function readSession(): { accessToken: string; sub: string } | null {
     return null;
   }
 }
-let pendingSyncCount = 0;
+let activeSyncOps = 0;
 let currentStatus: SyncStatus = { state: 'idle' };
 
 function setSyncStatus(status: SyncStatus): void {
@@ -91,21 +95,43 @@ function setSyncStatus(status: SyncStatus): void {
 }
 
 function onSyncStart(): void {
-  pendingSyncCount += 1;
+  activeSyncOps += 1;
   setSyncStatus({ state: 'syncing' });
 }
 
 function onSyncFinish(result: SyncResult): void {
-  pendingSyncCount = Math.max(0, pendingSyncCount - 1);
-  if (pendingSyncCount > 0) return;
+  activeSyncOps = Math.max(0, activeSyncOps - 1);
+  if (activeSyncOps > 0) return;
   if (result.ok) {
-    setSyncStatus({ state: 'success', syncedAt: new Date().toISOString() });
+    const syncedAt = new Date().toISOString();
+    setLastSyncedAt(syncedAt);
+    setLastSyncError(null);
+    setSyncStatus({ state: 'success', syncedAt });
     return;
   }
+  setLastSyncError(result.error ?? 'Unknown sync error');
   setSyncStatus({
     state: 'error',
     error: result.error ?? 'Unknown sync error',
     ...(result.code ? { code: result.code } : {}),
+  });
+}
+
+export function getCurrentSyncStatus(): SyncStatus {
+  return currentStatus;
+}
+
+/**
+ * Wire up automatic draining on network reconnect. Idempotent. Call once at app
+ * boot.
+ */
+let onlineListenerInstalled = false;
+export function installOnlineSyncListener(): void {
+  if (onlineListenerInstalled) return;
+  if (typeof window === 'undefined') return;
+  onlineListenerInstalled = true;
+  window.addEventListener('online', () => {
+    void drainOutbox();
   });
 }
 
@@ -659,20 +685,157 @@ export async function syncToSheet(
   }
 }
 
+/**
+ * Enqueue a mutation to the persistent outbox, then kick off a drain attempt
+ * (fire-and-forget). Survives reload, network outages, and offline sessions.
+ */
 export function syncInBackground(
   operation: SyncOperation,
   entityType: SyncEntityType,
   payload: object,
 ): void {
-  void syncToSheet(operation, entityType, payload).then((result) => {
-    if (!result.ok) {
-      console.error('[Moneyger Sync Error]', {
-        operation,
-        entityType,
-        error: result.error ?? 'Unknown sync error',
-      });
-    }
+  const id = (payload as { id?: unknown }).id;
+  if (typeof id !== 'string' || !id) return;
+  void enqueueOutbox(operation, entityType, id).then(() => {
+    void drainOutbox();
   });
+}
+
+export async function enqueueOutbox(
+  operation: SyncOperation,
+  entityType: SyncEntityType,
+  entityId: string,
+): Promise<void> {
+  const entry: OutboxEntry = {
+    id: newId(),
+    entityType,
+    entityId,
+    operation,
+    createdAt: nowISO(),
+    attempts: 0,
+    lastError: null,
+    lastAttemptAt: null,
+  };
+  await db.outbox.add(entry);
+}
+
+export async function getPendingSyncCount(): Promise<number> {
+  return db.outbox.count();
+}
+
+let drainInFlight: Promise<SyncResult> | null = null;
+
+/**
+ * Drain the outbox FIFO. Each entry is sent to Google Sheets via syncToSheet.
+ * On success the entry is deleted; on failure attempts/lastError are updated.
+ *
+ * - Network failures: stop draining (we'll retry on next online/online event).
+ * - sheet_missing: stop draining and surface error so the recovery banner shows.
+ * - Missing local row for create/update: drop silently (user deleted before sync).
+ *
+ * Concurrent calls are coalesced; the second caller awaits the in-flight drain.
+ */
+export function drainOutbox(): Promise<SyncResult> {
+  if (drainInFlight) return drainInFlight;
+  drainInFlight = runDrain().finally(() => {
+    drainInFlight = null;
+  });
+  return drainInFlight;
+}
+
+async function runDrain(): Promise<SyncResult> {
+  const session = readSession();
+  if (!session) {
+    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
+  }
+
+  const entries = await db.outbox.orderBy('createdAt').toArray();
+  if (entries.length === 0) {
+    // Nothing to do; don't churn the status indicator.
+    return { ok: true };
+  }
+
+  onSyncStart();
+  let lastResult: SyncResult = { ok: true };
+  try {
+    for (const entry of entries) {
+      const result = await syncOneEntry(entry);
+      if (result.ok) {
+        await db.outbox.delete(entry.id);
+        continue;
+      }
+      // Persist failure metadata, then bail. Remaining entries stay queued.
+      await db.outbox.update(entry.id, {
+        attempts: entry.attempts + 1,
+        lastError: result.error ?? 'Unknown sync error',
+        lastAttemptAt: nowISO(),
+      });
+      lastResult = result;
+      break;
+    }
+  } finally {
+    onSyncFinish(lastResult);
+  }
+  return lastResult;
+}
+
+async function syncOneEntry(entry: OutboxEntry): Promise<SyncResult> {
+  const session = readSession();
+  if (!session) {
+    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
+  }
+
+  try {
+    const sheetId = await resolveUserSheetId(session.accessToken, session.sub);
+
+    if (entry.operation === 'delete') {
+      await deleteRowById(session.accessToken, sheetId, entry.entityType, entry.entityId);
+      return { ok: true };
+    }
+
+    // create / update: re-read latest local state. If the row is gone (e.g.
+    // user deleted it before sync), treat as success and drop the entry.
+    const row = await readEntityRow(entry.entityType, entry.entityId);
+    if (!row) return { ok: true };
+    const normalized = normalizeForSheet(entry.entityType, row);
+    await upsertRow(session.accessToken, sheetId, entry.entityType, normalized);
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof SheetMissingError) {
+      clearSheetIdMemCache();
+      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
+    }
+    const msg = err instanceof Error ? err.message : 'Sync failed';
+    if (isSheetMissingSyncError(msg) || msg.includes('404')) {
+      clearSheetIdMemCache();
+      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
+    }
+    return { ok: false, error: msg };
+  }
+}
+
+async function readEntityRow(
+  entityType: SyncEntityType,
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  switch (entityType) {
+    case 'transactions':
+      return ((await db.transactions.get(id)) as unknown as Record<string, unknown>) ?? null;
+    case 'transfers':
+      return ((await db.transfers.get(id)) as unknown as Record<string, unknown>) ?? null;
+    case 'accounts':
+      return ((await db.accounts.get(id)) as unknown as Record<string, unknown>) ?? null;
+    case 'categories':
+      return ((await db.categories.get(id)) as unknown as Record<string, unknown>) ?? null;
+    case 'groups':
+      return ((await db.groups.get(id)) as unknown as Record<string, unknown>) ?? null;
+    case 'netWorthEntries':
+      return ((await db.netWorthEntries.get(id)) as unknown as Record<string, unknown>) ?? null;
+    default: {
+      const _e: never = entityType;
+      throw new Error(`Unexpected entity: ${String(_e)}`);
+    }
+  }
 }
 
 export async function fullSync(): Promise<SyncResult> {
@@ -794,6 +957,7 @@ export async function pullFullFromSheet(): Promise<SyncResult> {
         db.transactions,
         db.transfers,
         db.netWorthEntries,
+        db.outbox,
       ],
       async () => {
         await Promise.all([
@@ -803,6 +967,9 @@ export async function pullFullFromSheet(): Promise<SyncResult> {
           db.transactions.clear(),
           db.transfers.clear(),
           db.netWorthEntries.clear(),
+          // Pulling from the sheet replaces local state. Any queued mutations
+          // were against the now-stale local data and are no longer meaningful.
+          db.outbox.clear(),
         ]);
         if (buckets.groups.length) await db.groups.bulkPut(buckets.groups);
         if (buckets.categories.length) {

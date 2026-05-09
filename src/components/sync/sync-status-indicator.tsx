@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CircleCheck, Loader2, TriangleAlert } from 'lucide-react';
-import { subscribeSyncStatus } from '@/lib/sync';
+import { subscribeSyncStatus, type SyncStatus } from '@/lib/sync';
 import { toast } from '@/lib/toast';
 
 /** Hide the success pill after this long so "just now" does not sit stale without re-renders. */
 const SUCCESS_BADGE_HIDE_MS = 15_000;
 
-type IndicatorState =
-  | { state: 'idle' }
-  | { state: 'syncing' }
-  | { state: 'success'; syncedAt: string }
-  | { state: 'error'; error: string; code?: 'sheet_missing' };
+type IndicatorState = SyncStatus;
 
 export function SyncStatusIndicator() {
   const [status, setStatus] = useState<IndicatorState>({ state: 'idle' });

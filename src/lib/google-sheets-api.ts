@@ -151,9 +151,34 @@ export async function spreadsheetExists(
   }
 }
 
+/**
+ * Fetch the spreadsheet's current title. Returns null if the sheet is missing
+ * or inaccessible — caller can treat that the same as a deleted sheet.
+ */
+export async function getSpreadsheetTitle(
+  accessToken: string,
+  spreadsheetId: string,
+): Promise<string | null> {
+  try {
+    const result = await sheetsRequest<{
+      properties?: { title?: string };
+    }>(
+      accessToken,
+      `${SHEETS_BASE}/${encodeURIComponent(spreadsheetId)}?fields=properties.title`,
+      { method: 'GET' },
+    );
+    return result.properties?.title ?? null;
+  } catch (err) {
+    if (err instanceof SheetMissingError) return null;
+    throw err;
+  }
+}
+
+export const MONEYGER_SHEET_TITLE = 'Moneyger App Budget';
+
 export async function createMoneygerSpreadsheet(accessToken: string): Promise<string> {
   const body = {
-    properties: { title: 'Moneyger App Budget' },
+    properties: { title: MONEYGER_SHEET_TITLE },
     sheets: Object.values(ENTITY_TAB_NAMES).map((title) => ({ properties: { title } })),
   };
   const result = await sheetsRequest<{ spreadsheetId: string }>(

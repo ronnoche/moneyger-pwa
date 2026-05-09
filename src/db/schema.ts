@@ -133,6 +133,28 @@ export interface SyncLog {
   error: string | null;
 }
 
+/**
+ * Persistent outbox / sync queue. One row per pending mutation that still needs
+ * to be pushed to Google Sheets. Drained FIFO by the sync engine; survives
+ * page reloads, network outages, and offline sessions.
+ */
+export interface OutboxEntry {
+  id: string;
+  entityType:
+    | 'transactions'
+    | 'transfers'
+    | 'accounts'
+    | 'categories'
+    | 'groups'
+    | 'netWorthEntries';
+  entityId: string;
+  operation: 'create' | 'update' | 'delete';
+  createdAt: string;
+  attempts: number;
+  lastError: string | null;
+  lastAttemptAt: string | null;
+}
+
 export interface AutoAssignHistoryEntry {
   id: string;
   appliedAt: string;

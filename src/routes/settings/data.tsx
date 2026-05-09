@@ -2,8 +2,8 @@ import { useRef, useState } from 'react';
 import { useAuthSession } from '@/auth/session';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
+import { SyncPanel } from '@/components/sync/sync-panel';
 import { downloadBackup, exportBackup, importBackup, resetAllData } from '@/lib/backup';
-import { fullSync } from '@/lib/sync';
 
 type Status =
   | { kind: 'idle' }
@@ -68,19 +68,6 @@ export default function SettingsData() {
     }
   }
 
-  async function handleGoogleSync() {
-    setBusy(true);
-    try {
-      const result = await fullSync();
-      if (!result.ok) throw new Error(result.error ?? 'Google Sheets sync failed');
-      setStatus({ kind: 'success', message: 'Full sync completed.' });
-    } catch (e) {
-      setStatus({ kind: 'error', message: (e as Error).message });
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <div className="mx-auto max-w-xl px-4 py-4">
       <PageHeader title="Data" backTo="/settings" />
@@ -119,29 +106,19 @@ export default function SettingsData() {
           </div>
         </Card>
 
+        <SyncPanel />
+
         <Card
-          title="Google Sheets Sync"
-          body="Your app-level Google session is active. Trigger a full sync to push current local records to Apps Script."
+          title="Google account"
+          body={`Connected account: ${session?.email ?? 'Unknown account'}. Scope: profile, email, spreadsheets, drive.file.`}
         >
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button onClick={handleGoogleSync} disabled={busy}>
-                Sync to Google Sheets
-              </Button>
-              <Button variant="secondary" onClick={signOut} disabled={busy}>
-                Sign out
-              </Button>
-            </div>
-            <p className="text-xs text-ink-500">
-              Connected account: {session?.email ?? 'Unknown account'}
-            </p>
-            <p className="text-xs text-ink-500">
-              Scope includes profile, email, spreadsheets, and drive.file.
-            </p>
-            <div className="text-[11px] text-ink-500">
-              Access token is available client-side in the auth session.
-            </div>
-          </div>
+          <Button
+            variant="secondary"
+            onClick={() => void signOut()}
+            disabled={busy}
+          >
+            Sign out
+          </Button>
         </Card>
 
         <Card

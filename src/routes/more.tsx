@@ -25,7 +25,7 @@ export default function More() {
           icon={LogOut}
           label="Log out"
           onClick={() => {
-            signOut();
+            void signOut();
           }}
         />
       </ul>

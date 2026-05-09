@@ -6,6 +6,7 @@ import type {
   Category,
   Group,
   NetWorthEntry,
+  OutboxEntry,
   ReconcileEvent,
   SyncLog,
   Transaction,
@@ -23,6 +24,7 @@ export class MoneygerDB extends Dexie {
   autoAssignHistory!: EntityTable<AutoAssignHistoryEntry, 'id'>;
   budgetNotes!: EntityTable<BudgetNote, 'id'>;
   reconcileEvents!: EntityTable<ReconcileEvent, 'id'>;
+  outbox!: EntityTable<OutboxEntry, 'id'>;
 
   constructor() {
     super('moneyger-pwa');
@@ -141,6 +143,24 @@ export class MoneygerDB extends Dexie {
             }
           });
       });
+
+    this.version(4).stores({
+      groups: 'id, sortOrder, isArchived',
+      categories: 'id, groupId, sortOrder, isArchived, linkedAccountId, snoozedUntil',
+      accounts: 'id, isArchived, accountCategory, subtype, onBudget',
+      transactions:
+        'id, date, categoryId, accountId, status, reconciledAt, reconcileEventId',
+      transfers: 'id, date, fromCategoryId, toCategoryId',
+      netWorthEntries: 'id, date, type',
+      syncLogs: 'id, entityType, syncedAt, createdAt',
+      autoAssignHistory: 'id, appliedAt, presetId, scopeMonth',
+      budgetNotes: 'id, updatedAt',
+      reconcileEvents: 'id, accountId, reconciledAt, revertedAt',
+      // Persistent outbox: pending mutations to push to Google Sheets.
+      // Indexed by createdAt so we drain FIFO; entityType+entityId let us
+      // collapse duplicate updates per entity later if we want to.
+      outbox: 'id, createdAt, [entityType+entityId], entityType',
+    });
   }
 }
 

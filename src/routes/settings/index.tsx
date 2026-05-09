@@ -63,7 +63,7 @@ export default function Settings() {
           detail={currency}
         />
         <Row to="/settings/data" icon={Database} label="Data" />
-        <Row icon={LogOut} label="Log out" onClick={signOut} />
+        <Row icon={LogOut} label="Log out" onClick={() => void signOut()} />
       </Section>
     </div>
   );
