@@ -67,8 +67,30 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const result = await scriptRes.json().catch(() => ({ ok: false, error: 'Invalid response from registry' }));
-    return response(200, result);
+    const raw = await scriptRes.json().catch(() => ({ ok: false, error: 'Invalid response from registry' }));
+
+    // Normalise the Apps Script lookupUser response.
+    // The Apps Script returns { ok, exists, user_sheet_id, status } but the
+    // TypeScript client expects { ok, found, user: { ... } }.
+    if (action === 'lookupUser' && raw.ok) {
+      if (raw.exists) {
+        return response(200, {
+          ok: true,
+          found: true,
+          user: {
+            google_sub: userInfo.sub,
+            email: userInfo.email,
+            user_sheet_id: raw.user_sheet_id ?? null,
+            status: raw.status ?? 'active',
+            registered_at: raw.registered_at ?? '',
+            last_seen_at: raw.last_seen_at ?? '',
+          },
+        });
+      }
+      return response(200, { ok: true, found: false });
+    }
+
+    return response(200, raw);
   } catch (err) {
     return response(502, { ok: false, error: err instanceof Error ? err.message : 'Registry unreachable' });
   }
