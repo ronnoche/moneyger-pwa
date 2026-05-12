@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moneyger — Architecture Flows</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #c9d1d9;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────── */
+#sidebar {
+  width: 248px;
+  min-width: 248px;
+  background: #161b22;
+  border-right: 1px solid #21262d;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-header {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #21262d;
+}
+
+.sb-header h1 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f6fc;
+  margin-bottom: 2px;
+}
+
+.sb-header p {
+  font-size: 10px;
+  color: #484f58;
+}
+
+#flows-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+#flows-list::-webkit-scrollbar { width: 4px; }
+#flows-list::-webkit-scrollbar-track { background: transparent; }
+#flows-list::-webkit-scrollbar-thumb { background: #21262d; border-radius: 2px; }
+
+.flow-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  margin-bottom: 1px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #6e7681;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  font-family: inherit;
+  line-height: 1.3;
+}
+
+.flow-btn:hover { background: #1c2128; color: #c9d1d9; }
+
+.flow-btn.active {
+  background: #1c2128;
+  border-color: #30363d;
+  color: #f0f6fc;
+}
+
+.flow-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+}
+
+/* Detail panel */
+#flow-detail {
+  padding: 10px 12px;
+  border-top: 1px solid #21262d;
+  max-height: 240px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#flow-detail::-webkit-scrollbar { width: 4px; }
+#flow-detail::-webkit-scrollbar-track { background: transparent; }
+#flow-detail::-webkit-scrollbar-thumb { background: #21262d; border-radius: 2px; }
+
+.flow-desc {
+  font-size: 10px;
+  color: #484f58;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.step-num {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #0d1117;
+  margin-top: 1px;
+}
+
+.step-label {
+  font-size: 9px;
+  color: #6e7681;
+  line-height: 1.4;
+}
+
+.step-nodes {
+  font-weight: 600;
+  color: #8b949e;
+  display: block;
+}
+
+/* ── Canvas ─────────────────────────────────────────── */
+#canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.layer-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed #1c2128;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.layer-label {
+  position: absolute;
+  top: 8px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #21262d;
+  pointer-events: none;
+  z-index: 1;
+  transform: translateX(-50%);
+}
+
+/* ── Nodes ──────────────────────────────────────────── */
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #161b22;
+  border: 1.5px solid #21262d;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: default;
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+  z-index: 2;
+  white-space: nowrap;
+  user-select: none;
+  text-align: center;
+}
+
+.node-icon { font-size: 12px; display: block; margin-bottom: 2px; line-height: 1; }
+
+.node-name {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #6e7681;
+  display: block;
+  transition: color 0.2s;
+}
+
+.node-sub {
+  font-size: 7.5px;
+  color: #30363d;
+  display: block;
+  margin-top: 1px;
+  transition: color 0.2s;
+}
+
+.node.highlight {
+  border-color: var(--fc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fc) 18%, transparent),
+              0 4px 12px rgba(0,0,0,0.5);
+  z-index: 5;
+}
+
+.node.highlight .node-name { color: var(--fc); }
+.node.highlight .node-sub  { color: color-mix(in srgb, var(--fc) 50%, transparent); }
+
+.node.dimmed { opacity: 0.18; }
+
+/* ── SVG arrows ─────────────────────────────────────── */
+#arrows-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+
+@keyframes drawPath {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* ── Empty state ────────────────────────────────────── */
+#empty-msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #21262d;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#empty-msg h2 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+#empty-msg p  { font-size: 11px; }
+
+#reset-tip {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: #30363d;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 6;
+  white-space: nowrap;
+}
+
+#reset-tip.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="sb-header">
+    <h1>💸 Moneyger Flows</h1>
+    <p>Click a flow to trace it through the architecture</p>
+  </div>
+  <div id="flows-list"></div>
+  <div id="flow-detail">
+    <p class="flow-desc">Select a flow to see annotated steps.</p>
+  </div>
+</aside>
+
+<div id="canvas">
+  <div id="nodes-layer"></div>
+  <svg id="arrows-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs id="svg-defs"></defs>
+  </svg>
+  <div id="empty-msg">
+    <h2>Select a flow →</h2>
+    <p>Choose a workflow from the sidebar</p>
+  </div>
+  <div id="reset-tip">Click the active flow again to reset</div>
+</div>
+
+<script>
+// ================================================================
+// JSON DATA — edit this to add/remove flows and nodes
+// ================================================================
+const ARCH = {
+
+  layers: [
+    { id: "ui",       label: "UI",             x: 8  },
+    { id: "core",     label: "App Core",       x: 26 },
+    { id: "logic",    label: "Business Logic", x: 46 },
+    { id: "netlify",  label: "Serverless",     x: 67 },
+    { id: "google",   label: "Google",         x: 87 },
+  ],
+
+  nodes: [
+    // UI layer
+    { id: "user",        label: "User / Browser",     sub: "",                      icon: "🧑‍💻", x: 8,  y: 13 },
+    { id: "routes",      label: "Routes / Pages",     sub: "src/routes/",           icon: "📄", x: 8,  y: 30 },
+    { id: "components",  label: "UI Components",      sub: "src/components/",       icon: "🧩", x: 8,  y: 48 },
+    { id: "sw",          label: "Service Worker",     sub: "Workbox / PWA",         icon: "⚙️", x: 8,  y: 76 },
+
+    // App Core layer
+    { id: "auth",        label: "Auth Context",       sub: "auth/session.tsx",      icon: "🔐", x: 26, y: 13 },
+    { id: "sheet-res",   label: "Sheet Resolver",     sub: "lib/sheet-resolver.ts", icon: "🔍", x: 26, y: 30 },
+    { id: "sync",        label: "Sync Engine",        sub: "lib/sync.ts",           icon: "🔄", x: 26, y: 48 },
+    { id: "db",          label: "Dexie / IndexedDB",  sub: "db/db.ts",              icon: "🗄️", x: 26, y: 63 },
+    { id: "outbox",      label: "Outbox Queue",       sub: "db.outbox table",       icon: "📤", x: 26, y: 78 },
+
+    // Business Logic layer
+    { id: "auto-assign", label: "Auto-Assign",        sub: "lib/auto-assign.ts",    icon: "🤖", x: 46, y: 18 },
+    { id: "budget-math", label: "Budget Math",        sub: "lib/budget-math.ts",    icon: "🧮", x: 46, y: 34 },
+    { id: "feat-repos",  label: "Feature Repos",      sub: "features/*/repo.ts",    icon: "📦", x: 46, y: 52 },
+    { id: "reconcile",   label: "Reconcile",          sub: "lib/reconcile.ts",      icon: "⚖️", x: 46, y: 68 },
+
+    // Serverless layer (Netlify functions)
+    { id: "fn-oauth",    label: "Netlify: OAuth",     sub: "google-oauth-exchange", icon: "🔑", x: 67, y: 13 },
+    { id: "fn-reg",      label: "Netlify: Registry",  sub: "functions/registry",    icon: "📋", x: 67, y: 30 },
+    { id: "fn-refresh",  label: "Netlify: Refresh",   sub: "google-oauth-refresh",  icon: "♻️", x: 67, y: 48 },
+
+    // Google layer
+    { id: "g-oauth",     label: "Google OAuth",       sub: "accounts.google.com",   icon: "🔒", x: 87, y: 13 },
+    { id: "g-drive",     label: "Google Drive API",   sub: "drive.googleapis.com",  icon: "📁", x: 87, y: 30 },
+    { id: "g-sheets",    label: "Google Sheets API",  sub: "sheets.googleapis.com", icon: "📊", x: 87, y: 48 },
+    { id: "g-script",    label: "Apps Script",        sub: "script.google.com",     icon: "📝", x: 87, y: 65 },
+  ],
+
+  flows: [
+    {
+      id: "sign-in",
+      label: "Sign In (Google OAuth)",
+      color: "#3fb950",
+      description: "First-time or explicit sign-in. Walks through PKCE OAuth redirect, server-side token exchange, sheet resolution, and an initial full data pull.",
+      steps: [
+        { from: "user",      to: "routes",     note: "navigates to /sign-in" },
+        { from: "routes",    to: "auth",        note: "signInWithGoogle()" },
+        { from: "auth",      to: "g-oauth",     note: "OAuth redirect w/ code_challenge (PKCE)" },
+        { from: "g-oauth",   to: "routes",      note: "auth code via /auth/callback" },
+        { from: "routes",    to: "fn-oauth",    note: "POST { code, code_verifier }" },
+        { from: "fn-oauth",  to: "g-oauth",     note: "exchange code for tokens" },
+        { from: "fn-oauth",  to: "auth",        note: "{ access_token, refresh_token, user }" },
+        { from: "auth",      to: "sheet-res",   note: "connectUserSheet(email)" },
+        { from: "sheet-res", to: "fn-reg",      note: "lookupUser(email)" },
+        { from: "fn-reg",    to: "sheet-res",   note: "{ found: false } — first login" },
+        { from: "sheet-res", to: "g-drive",     note: "search for 'Moneyger App Budget'" },
+        { from: "g-drive",   to: "sheet-res",   note: "spreadsheetId (or null)" },
+        { from: "sheet-res", to: "fn-reg",      note: "upsertUser({ email, sheetId })" },
+        { from: "auth",      to: "sync",        note: "syncOnFreshLogin()" },
+        { from: "sync",      to: "g-sheets",    note: "listRows() — all 6 sheet tabs" },
+        { from: "g-sheets",  to: "sync",        note: "raw row arrays per tab" },
+        { from: "sync",      to: "db",          note: "wipe + bulk-insert all tables" },
+      ]
+    },
+
+    {
+      id: "session-restore",
+      label: "Session Restore",
+      color: "#58a6ff",
+      description: "User reopens the app. Session is hydrated from localStorage, access token is refreshed if expired, sheet ID is resolved from cache or registry, and any queued writes are drained.",
+      steps: [
+        { from: "user",      to: "routes",     note: "page load / app reopen" },
+        { from: "routes",    to: "auth",        note: "AuthProvider mounts, reads localStorage" },
+        { from: "auth",      to: "fn-refresh",  note: "refreshAccessToken() — token expired" },
+        { from: "fn-refresh",to: "g-oauth",     note: "POST refresh_token" },
+        { from: "g-oauth",   to: "fn-refresh",  note: "new access_token" },
+        { from: "fn-refresh",to: "auth",        note: "updated session written to localStorage" },
+        { from: "auth",      to: "sheet-res",   note: "resolveUserSheetId() — mem cache miss" },
+        { from: "sheet-res", to: "fn-reg",      note: "lookupUser() — localStorage miss" },
+        { from: "fn-reg",    to: "sheet-res",   note: "{ found: true, sheetId }" },
+        { from: "auth",      to: "sync",        note: "syncOnSessionRestore()" },
+        { from: "sync",      to: "outbox",      note: "drainOutbox() — flush pending writes" },
+        { from: "outbox",    to: "g-sheets",    note: "replayed mutations (FIFO)" },
+      ]
+    },
+
+    {
+      id: "add-transaction",
+      label: "Add Transaction",
+      color: "#f78166",
+      description: "User records a new transaction. The write hits IndexedDB immediately (optimistic), then enqueues to the outbox which syncs to Google Sheets in the background.",
+      steps: [
+        { from: "user",       to: "routes",      note: "taps New Transaction" },
+        { from: "routes",     to: "components",  note: "TransactionForm rendered" },
+        { from: "user",       to: "components",  note: "fills form + submits" },
+        { from: "components", to: "feat-repos",  note: "transactions.create(data)" },
+        { from: "feat-repos", to: "db",          note: "db.transactions.add(record)" },
+        { from: "db",         to: "outbox",       note: "enqueueOutbox({ type:'upsert', ... })" },
+        { from: "outbox",     to: "sync",         note: "syncInBackground() fire-and-forget" },
+        { from: "sync",       to: "g-sheets",    note: "upsertRow(Transactions tab, row)" },
+        { from: "g-sheets",   to: "g-script",    note: "Apps Script proxy writes cell" },
+        { from: "g-script",   to: "g-sheets",    note: "write confirmed" },
+        { from: "sync",       to: "outbox",       note: "entry removed from queue" },
+      ]
+    },
+
+    {
+      id: "full-pull",
+      label: "Full Sheet Pull",
+      color: "#e3b341",
+      description: "Pulls all rows from all 6 Google Sheet tabs and replaces the entire local IndexedDB. Triggered on fresh login or manual 'Resync' from Settings.",
+      steps: [
+        { from: "auth",      to: "sync",       note: "pullFullFromSheet(owner)" },
+        { from: "sync",      to: "sheet-res",  note: "resolveUserSheetId()" },
+        { from: "sheet-res", to: "sync",       note: "spreadsheetId" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('Accounts')" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('Categories')" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('Groups')" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('Transactions')" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('Transfers')" },
+        { from: "sync",      to: "g-sheets",   note: "listRows('NetWorthEntries')" },
+        { from: "g-sheets",  to: "sync",       note: "all raw rows (6 tabs)" },
+        { from: "sync",      to: "db",         note: "db.transaction() — wipe & bulk-insert" },
+      ]
+    },
+
+    {
+      id: "auto-assign",
+      label: "Auto-Assign Preset",
+      color: "#bc8cff",
+      description: "User picks a budget preset (e.g. Spend on Inflow, % of income). Rules are evaluated against current balances to generate a set of Transfer records, then synced.",
+      steps: [
+        { from: "user",        to: "components",  note: "opens Auto-Assign panel" },
+        { from: "components",  to: "auto-assign",  note: "applyPreset(presetId, month)" },
+        { from: "auto-assign", to: "db",           note: "read categories + transactions" },
+        { from: "auto-assign", to: "budget-math",  note: "categoryAvailable() per category" },
+        { from: "budget-math", to: "db",           note: "reads transfers + transactions" },
+        { from: "budget-math", to: "auto-assign",  note: "available balances map" },
+        { from: "auto-assign", to: "feat-repos",   note: "create Transfer records per rule" },
+        { from: "feat-repos",  to: "db",           note: "db.transfers.bulkAdd(moves)" },
+        { from: "db",          to: "outbox",        note: "enqueueOutbox() per transfer" },
+        { from: "outbox",      to: "sync",          note: "syncInBackground()" },
+        { from: "sync",        to: "g-sheets",     note: "upsertRow(Transfers) ×N" },
+      ]
+    },
+
+    {
+      id: "move-money",
+      label: "Move Money (Budget)",
+      color: "#79c0ff",
+      description: "User manually allocates budget between categories. Available balances are derived from IndexedDB, and the resulting Transfer is synced to the sheet.",
+      steps: [
+        { from: "user",       to: "routes",      note: "opens Budget view" },
+        { from: "routes",     to: "components",  note: "BudgetTable + BudgetInspector" },
+        { from: "components", to: "budget-math", note: "categoryAvailable() for each row" },
+        { from: "budget-math",to: "db",          note: "reads transfers + transactions" },
+        { from: "db",         to: "budget-math", note: "balance data" },
+        { from: "budget-math",to: "components",  note: "available amounts per category" },
+        { from: "user",       to: "components",  note: "enters allocation amount" },
+        { from: "components", to: "feat-repos",  note: "createTransfer(from, to, amount)" },
+        { from: "feat-repos", to: "db",          note: "db.transfers.add()" },
+        { from: "db",         to: "outbox",       note: "enqueueOutbox()" },
+        { from: "outbox",     to: "sync",         note: "syncInBackground()" },
+        { from: "sync",       to: "g-sheets",    note: "upsertRow(Transfers tab)" },
+      ]
+    },
+
+    {
+      id: "onboarding",
+      label: "Onboarding (New User)",
+      color: "#ffa657",
+      description: "Brand new user — no existing sheet found. A fresh Google Sheet is created with all 6 tabs, headers are written, the user is registered, and scaffold data is seeded.",
+      steps: [
+        { from: "user",      to: "routes",     note: "post-sign-in, no sheet found" },
+        { from: "auth",      to: "sheet-res",  note: "connectUserSheet() — no match" },
+        { from: "sheet-res", to: "g-drive",    note: "createMoneygerSpreadsheet()" },
+        { from: "g-drive",   to: "g-sheets",   note: "create file + 6 tabs" },
+        { from: "g-sheets",  to: "g-script",   note: "write column headers per tab" },
+        { from: "g-sheets",  to: "sheet-res",  note: "new spreadsheetId" },
+        { from: "sheet-res", to: "fn-reg",     note: "upsertUser({ email, sheetId })" },
+        { from: "routes",    to: "db",         note: "first-run scaffold (accounts, groups)" },
+        { from: "db",        to: "outbox",      note: "enqueueOutbox() scaffold records" },
+        { from: "outbox",    to: "sync",        note: "drainOutbox() — initial populate" },
+        { from: "sync",      to: "g-sheets",   note: "upsertRow() ×N scaffold data" },
+      ]
+    },
+
+    {
+      id: "sheet-recovery",
+      label: "Sheet Recovery",
+      color: "#ff7b72",
+      description: "Sheet Resolver detects that the user's spreadsheet was renamed or deleted. It clears the stale ID, searches Drive for a match by title, updates the registry, and retries.",
+      steps: [
+        { from: "sync",      to: "g-sheets",  note: "API call with stale spreadsheetId" },
+        { from: "g-sheets",  to: "sync",      note: "404 / SpreadsheetNotFound error" },
+        { from: "sync",      to: "sheet-res", note: "clearCachedSheetId()" },
+        { from: "sheet-res", to: "g-drive",   note: "search Drive: 'Moneyger App Budget'" },
+        { from: "g-drive",   to: "sheet-res", note: "new spreadsheetId (or null → re-onboard)" },
+        { from: "sheet-res", to: "fn-reg",    note: "updateUserSheetId(newId)" },
+        { from: "sheet-res", to: "sync",      note: "fresh sheetId — retry" },
+        { from: "sync",      to: "g-sheets",  note: "retry outbox entries" },
+      ]
+    },
+
+    {
+      id: "reconcile",
+      label: "Reconcile Account",
+      color: "#56d364",
+      description: "User checks off transactions against their bank statement. Cleared items are marked in IndexedDB and synced back to the sheet.",
+      steps: [
+        { from: "user",       to: "components",  note: "opens Reconcile modal" },
+        { from: "components", to: "db",          note: "load uncleared transactions" },
+        { from: "db",         to: "components",  note: "transaction list" },
+        { from: "user",       to: "components",  note: "checks off cleared items" },
+        { from: "components", to: "reconcile",   note: "validateReconciliation(balance)" },
+        { from: "reconcile",  to: "feat-repos",  note: "markTransactionsCleared(ids)" },
+        { from: "feat-repos", to: "db",          note: "bulkPut() status = 'cleared'" },
+        { from: "db",         to: "outbox",       note: "enqueueOutbox() per cleared tx" },
+        { from: "outbox",     to: "sync",         note: "syncInBackground()" },
+        { from: "sync",       to: "g-sheets",    note: "upsertRow() with status='cleared'" },
+      ]
+    },
+
+    {
+      id: "offline-sync",
+      label: "Offline / PWA Mode",
+      color: "#a5d6ff",
+      description: "User makes changes without a network connection. Writes succeed locally via IndexedDB, queue up in the outbox, and are replayed once connectivity is restored.",
+      steps: [
+        { from: "sw",         to: "routes",      note: "serves cached assets (offline)" },
+        { from: "user",       to: "components",  note: "creates transactions while offline" },
+        { from: "components", to: "feat-repos",  note: "transactions.create()" },
+        { from: "feat-repos", to: "db",          note: "write succeeds (IndexedDB local)" },
+        { from: "db",         to: "outbox",       note: "enqueueOutbox() — persisted locally" },
+        { from: "outbox",     to: "sync",         note: "syncInBackground() — skipped offline" },
+        { from: "sw",         to: "sync",         note: "online event fires" },
+        { from: "sync",       to: "outbox",       note: "drainOutbox() resumes FIFO" },
+        { from: "sync",       to: "g-sheets",    note: "replay all pending mutations" },
+        { from: "g-sheets",   to: "sync",        note: "write confirmations" },
+        { from: "sync",       to: "outbox",       note: "entries cleared" },
+      ]
+    },
+  ]
+};
+
+// ================================================================
+// RENDERING ENGINE
+// ================================================================
+
+let activeFlowId = null;
+
+function init() {
+  renderLayerLabels();
+  renderNodes();
+  renderSidebar();
+
+  window.addEventListener('resize', () => {
+    if (activeFlowId) renderArrows(getFlow(activeFlowId));
+  });
+}
+
+function getFlow(id) { return ARCH.flows.find(f => f.id === id); }
+
+// ── Sidebar ──────────────────────────────────────────────────────
+
+function renderSidebar() {
+  const list = document.getElementById('flows-list');
+  list.innerHTML = '';
+  ARCH.flows.forEach(flow => {
+    const btn = document.createElement('button');
+    btn.className = 'flow-btn';
+    btn.dataset.fid = flow.id;
+    btn.innerHTML =
+      `<span class="flow-dot" style="background:${flow.color}"></span>${flow.label}`;
+    btn.addEventListener('click', () => toggleFlow(flow.id));
+    list.appendChild(btn);
+  });
+}
+
+function renderFlowDetail(flow) {
+  const panel = document.getElementById('flow-detail');
+  if (!flow) {
+    panel.innerHTML = '<p class="flow-desc">Select a flow to see annotated steps.</p>';
+    return;
+  }
+  const stepsHtml = flow.steps.map((step, i) => {
+    const fn = ARCH.nodes.find(n => n.id === step.from);
+    const tn = ARCH.nodes.find(n => n.id === step.to);
+    return `<div class="step-row">
+      <span class="step-num" style="background:${flow.color}">${i + 1}</span>
+      <span class="step-label">
+        <span class="step-nodes">${fn?.label} → ${tn?.label}</span>
+        ${step.note}
+      </span>
+    </div>`;
+  }).join('');
+  panel.innerHTML = `<p class="flow-desc">${flow.description}</p>${stepsHtml}`;
+}
+
+// ── Layer labels & dividers ──────────────────────────────────────
+
+function renderLayerLabels() {
+  const canvas = document.getElementById('canvas');
+  ARCH.layers.forEach((layer, i) => {
+    const lbl = document.createElement('div');
+    lbl.className = 'layer-label';
+    lbl.style.left = layer.x + '%';
+    lbl.textContent = layer.label;
+    canvas.appendChild(lbl);
+
+    if (i < ARCH.layers.length - 1) {
+      const mid = (ARCH.layers[i].x + ARCH.layers[i + 1].x) / 2;
+      const div = document.createElement('div');
+      div.className = 'layer-divider';
+      div.style.left = mid + '%';
+      canvas.appendChild(div);
+    }
+  });
+}
+
+// ── Nodes ────────────────────────────────────────────────────────
+
+function renderNodes() {
+  const container = document.getElementById('nodes-layer');
+  ARCH.nodes.forEach(node => {
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.dataset.id = node.id;
+    el.style.left = node.x + '%';
+    el.style.top  = node.y + '%';
+    el.innerHTML =
+      `<span class="node-icon">${node.icon}</span>` +
+      `<span class="node-name">${node.label}</span>` +
+      (node.sub ? `<span class="node-sub">${node.sub}</span>` : '');
+    container.appendChild(el);
+  });
+}
+
+// ── Flow toggle ──────────────────────────────────────────────────
+
+function toggleFlow(flowId) {
+  activeFlowId === flowId ? resetFlow() : selectFlow(flowId);
+}
+
+function selectFlow(flowId) {
+  activeFlowId = flowId;
+  const flow = getFlow(flowId);
+
+  document.querySelectorAll('.flow-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.fid === flowId));
+
+  const involved = new Set(flow.steps.flatMap(s => [s.from, s.to]));
+  document.querySelectorAll('.node').forEach(node => {
+    const id = node.dataset.id;
+    node.classList.remove('highlight', 'dimmed');
+    if (involved.has(id)) {
+      node.classList.add('highlight');
+      node.style.setProperty('--fc', flow.color);
+    } else {
+      node.classList.add('dimmed');
+      node.style.removeProperty('--fc');
+    }
+  });
+
+  renderArrows(flow);
+  renderFlowDetail(flow);
+  document.getElementById('empty-msg').style.display = 'none';
+  document.getElementById('reset-tip').classList.add('show');
+}
+
+function resetFlow() {
+  activeFlowId = null;
+  document.querySelectorAll('.flow-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.node').forEach(n => {
+    n.classList.remove('highlight', 'dimmed');
+    n.style.removeProperty('--fc');
+  });
+  clearArrows();
+  renderFlowDetail(null);
+  document.getElementById('empty-msg').style.display = '';
+  document.getElementById('reset-tip').classList.remove('show');
+}
+
+// ── Arrow rendering ──────────────────────────────────────────────
+
+function clearArrows() {
+  const svg = document.getElementById('arrows-svg');
+  const defs = document.getElementById('svg-defs');
+  svg.innerHTML = '';
+  defs.innerHTML = '';
+  svg.appendChild(defs);
+}
+
+function nodeCenter(id) {
+  const el = document.querySelector(`.node[data-id="${id}"]`);
+  if (!el) return null;
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+  const nr = el.getBoundingClientRect();
+  return {
+    x: nr.left - cr.left + nr.width  / 2,
+    y: nr.top  - cr.top  + nr.height / 2,
+    w: nr.width,
+    h: nr.height,
+  };
+}
+
+function edgePoint(center, toward) {
+  const dx = toward.x - center.x;
+  const dy = toward.y - center.y;
+  if (!dx && !dy) return { x: center.x, y: center.y };
+  const hw = center.w / 2 + 4;
+  const hh = center.h / 2 + 4;
+  const t  = Math.min(hw / (Math.abs(dx) || 1e9), hh / (Math.abs(dy) || 1e9));
+  return { x: center.x + dx * t, y: center.y + dy * t };
+}
+
+function renderArrows(flow) {
+  clearArrows();
+  const svg  = document.getElementById('arrows-svg');
+  const defs = document.getElementById('svg-defs');
+
+  // Per-flow arrowhead marker
+  const mid = `ah-${flow.id}`;
+  defs.innerHTML = `
+    <marker id="${mid}" markerWidth="7" markerHeight="5"
+            refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="${flow.color}" opacity="0.9"/>
+    </marker>`;
+
+  // Track how many arrows share the same pair (to offset overlapping ones)
+  const pairOccurrences = {};
+  flow.steps.forEach(s => {
+    const k = [s.from, s.to].sort().join('↔');
+    pairOccurrences[k] = (pairOccurrences[k] || 0) + 1;
+  });
+  const pairCursor = {};
+
+  // Collect elements to add — paths first, then labels on top
+  const paths  = [];
+  const labels = [];
+
+  flow.steps.forEach((step, i) => {
+    const fc = nodeCenter(step.from);
+    const tc = nodeCenter(step.to);
+    if (!fc || !tc) return;
+
+    // Same-node self-loop (shouldn't happen but guard)
+    const sameNode = step.from === step.to;
+
+    const ep1 = edgePoint(fc, tc);
+    const ep2 = edgePoint(tc, fc);
+
+    // Perpendicular offset to fan out parallel arrows
+    const pairKey = [step.from, step.to].sort().join('↔');
+    pairCursor[pairKey] = (pairCursor[pairKey] || 0);
+    const pIdx  = pairCursor[pairKey]++;
+    const total = pairOccurrences[pairKey];
+
+    const midX = (ep1.x + ep2.x) / 2;
+    const midY = (ep1.y + ep2.y) / 2;
+    const dx   = ep2.x - ep1.x;
+    const dy   = ep2.y - ep1.y;
+    const len  = Math.sqrt(dx * dx + dy * dy) || 1;
+    const px   = -dy / len;  // perpendicular unit vector
+    const py   =  dx / len;
+
+    // Fan offset + base curvature
+    const fanOffset  = total > 1 ? (pIdx - (total - 1) / 2) * 26 : 0;
+    const baseCurve  = len > 120 ? 18 : 10;
+    const curveMag   = fanOffset + baseCurve;
+
+    const cpx = midX + px * curveMag;
+    const cpy = midY + py * curveMag;
+
+    const delay = i * 60; // ms
+
+    // ── Path ──
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const d    = `M ${ep1.x} ${ep1.y} Q ${cpx} ${cpy} ${ep2.x} ${ep2.y}`;
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', flow.color);
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', '0');
+    path.setAttribute('marker-end', `url(#${mid})`);
+
+    // Animate draw-in after DOM insertion
+    path._delay = delay;
+    path._d     = d;
+    paths.push(path);
+
+    // ── Step number bubble at ~40% along curve ──
+    const t40 = 0.4;
+    const bx  = (1-t40)*(1-t40)*ep1.x + 2*(1-t40)*t40*cpx + t40*t40*ep2.x;
+    const by  = (1-t40)*(1-t40)*ep1.y + 2*(1-t40)*t40*cpy + t40*t40*ep2.y;
+
+    const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circ.setAttribute('cx', bx); circ.setAttribute('cy', by); circ.setAttribute('r', 8);
+    circ.setAttribute('fill', flow.color); circ.setAttribute('opacity', '0');
+    circ._delay = delay + 80;
+    labels.push(circ);
+
+    const numT = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    numT.setAttribute('x', bx); numT.setAttribute('y', by + 3.5);
+    numT.setAttribute('text-anchor', 'middle');
+    numT.setAttribute('font-size', '7.5'); numT.setAttribute('font-weight', '700');
+    numT.setAttribute('fill', '#0d1117');
+    numT.setAttribute('font-family', '-apple-system,BlinkMacSystemFont,sans-serif');
+    numT.setAttribute('opacity', '0');
+    numT.textContent = i + 1;
+    numT._delay = delay + 80;
+    labels.push(numT);
+
+    // ── Inline note label near 60% ──
+    if (step.note) {
+      const t60   = 0.6;
+      const lx    = (1-t60)*(1-t60)*ep1.x + 2*(1-t60)*t60*cpx + t60*t60*ep2.x;
+      const ly    = (1-t60)*(1-t60)*ep1.y + 2*(1-t60)*t60*cpy + t60*t60*ep2.y;
+      const txt   = step.note.length > 32 ? step.note.slice(0, 30) + '…' : step.note;
+      const bw    = txt.length * 5.0 + 8;
+      const bh    = 13;
+
+      const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('x', lx - bw/2); bg.setAttribute('y', ly - bh/2);
+      bg.setAttribute('width', bw); bg.setAttribute('height', bh);
+      bg.setAttribute('rx', '3'); bg.setAttribute('fill', '#0d1117');
+      bg.setAttribute('opacity', '0');
+      bg._delay = delay + 120;
+      labels.push(bg);
+
+      const lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      lt.setAttribute('x', lx); lt.setAttribute('y', ly + 4);
+      lt.setAttribute('text-anchor', 'middle');
+      lt.setAttribute('font-size', '8'); lt.setAttribute('fill', '#8b949e');
+      lt.setAttribute('font-family', '-apple-system,BlinkMacSystemFont,sans-serif');
+      lt.setAttribute('opacity', '0');
+      lt.textContent = txt;
+      lt._delay = delay + 120;
+      labels.push(lt);
+    }
+  });
+
+  // Insert all paths, then all labels (so labels render on top)
+  paths.forEach(p  => svg.appendChild(p));
+  labels.forEach(l => svg.appendChild(l));
+
+  // Animate paths with stroke-dashoffset after insertion
+  paths.forEach(path => {
+    const len = path.getTotalLength ? path.getTotalLength() : 200;
+    path.style.strokeDasharray  = len;
+    path.style.strokeDashoffset = len;
+    path.style.opacity          = '0.8';
+    path.style.transition =
+      `stroke-dashoffset 0.45s ease ${path._delay}ms, opacity 0.1s ease ${path._delay}ms`;
+    requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
+  });
+
+  // Fade in labels
+  labels.forEach(el => {
+    el.style.transition = `opacity 0.25s ease ${el._delay}ms`;
+    requestAnimationFrame(() => { el.setAttribute('opacity', '1'); });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
