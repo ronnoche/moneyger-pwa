@@ -1,124 +1,160 @@
 # Moneyger
 
-Zero-based envelope budgeting, offline-first, installable on iOS.
+Zero-based envelope budgeting PWA. Offline-first, installable on iOS/Android, syncs across devices via Supabase. Personal single-user app.
 
 ## Stack
 
-- Vite + React 19 + TypeScript
-- Tailwind v4 (CSS-first theme)
-- React Router v7 (library mode)
-- Dexie + dexie-react-hooks
-- React Hook Form + Zod
-- Recharts, date-fns, Lucide, Radix (piecemeal)
-- vite-plugin-pwa
-- Vitest
-
-## Scripts
-
-- `pnpm dev` — Vite only (`http://localhost:5173`). **Does not** run Netlify Functions; `/.netlify/functions/*` is unavailable.
-- `pnpm dlx netlify dev` — full local stack: Netlify Dev on **`http://localhost:8888`**, Vite behind the proxy, and `netlify/functions` loaded from the repo root `.env`. Use this for Google sign-in, Sheets sync, and the registry function.
-- `pnpm build` — typecheck + production build
-- `pnpm preview` — serve the production build
-- `pnpm test` — run Vitest in watch mode
-- `pnpm test:run` — run Vitest once (CI)
-- `pnpm lint` — ESLint
-- `pnpm format` — Prettier
-- `pnpm pwa-assets` — regenerate icons from `public/icon-source.svg`
+- **Vite 7 + React 19 + TypeScript** — build & UI
+- **Tailwind v4** — CSS-first theme
+- **React Router v7** (library mode)
+- **Dexie + dexie-react-hooks** — offline-first IndexedDB
+- **Supabase** — PostgreSQL cloud database, cross-device sync
+- **React Hook Form + Zod** — forms & validation
+- **Recharts, date-fns, Lucide, Radix** — charts, dates, icons, primitives
+- **vite-plugin-pwa + Workbox** — installable PWA, offline service worker
+- **Vitest** — unit tests
 
 ## Local development
 
-1. **Node:** use the version in `.nvmrc` (22).
-2. **Dependencies:** `pnpm install`
-3. **Environment:** copy `.env.example` to `.env` and fill values (see [Google Auth + Sheets Sync](#google-auth--sheets-sync)). Netlify Dev injects server-only vars from `.env` into functions.
-4. **Start:** from the repo root run:
+1. **Install deps:** `pnpm install`
+2. **Environment:** copy `.env.example` → `.env` and fill in your Supabase keys
+3. **Start:** `pnpm dev` → `http://localhost:5173`
 
-   ```bash
-   pnpm dlx netlify dev
-   ```
+That's it. No Netlify Dev required — Supabase is called directly from the client using the anon key.
 
-   Open **`http://localhost:8888`**. Vite’s own port (often `5173`) still runs in the background; browse **only** through `8888` so the app origin, redirects, and `/.netlify/functions/*` paths match production.
+## Environment variables
 
-For UI-only work without OAuth or sync, `pnpm dev` on port `5173` is enough.
+All client-safe (prefixed `VITE_`, baked into the browser bundle):
 
-## Project Layout
+```env
+# Google OAuth (identity / login gate)
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+VITE_OAUTH_REDIRECT_URI=http://localhost:5173/auth/callback
+
+# Supabase (database & cross-device sync)
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-public-key
+```
+
+See `.env.example` for the full list. Add the same vars to Netlify → Site Settings → Environment Variables for production deploys.
+
+## Supabase setup
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Go to **Settings → API** → copy Project URL and `anon` key
+3. In the **SQL Editor**, run the schema from `supabase/schema.sql` (or the block below)
+4. RLS is disabled — this is a personal single-user app accessed via the anon key
+
+<details>
+<summary>Schema SQL</summary>
+
+```sql
+CREATE TABLE IF NOT EXISTS groups (
+  id text PRIMARY KEY, name text NOT NULL DEFAULT '',
+  "sortOrder" integer NOT NULL DEFAULT 0, "isArchived" boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS categories (
+  id text PRIMARY KEY, "groupId" text NOT NULL DEFAULT '', name text NOT NULL DEFAULT '',
+  type text NOT NULL DEFAULT 'expense', "goalType" text NOT NULL DEFAULT 'none',
+  "goalBehavior" text, "goalAmount" numeric NOT NULL DEFAULT 0,
+  "goalDueDate" text, "goalRecurring" boolean, "goalStartMonth" text,
+  "snoozedUntil" text, "linkedAccountId" text,
+  "sortOrder" integer NOT NULL DEFAULT 0, "isArchived" boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS accounts (
+  id text PRIMARY KEY, name text NOT NULL DEFAULT '',
+  "accountCategory" text NOT NULL DEFAULT 'cash', subtype text NOT NULL DEFAULT 'checking',
+  "onBudget" boolean NOT NULL DEFAULT true, "lastReconciledAt" text,
+  "isCreditCard" boolean NOT NULL DEFAULT false, "isArchived" boolean NOT NULL DEFAULT false
+);
+CREATE TABLE IF NOT EXISTS transactions (
+  id text PRIMARY KEY, date text NOT NULL DEFAULT '',
+  outflow numeric NOT NULL DEFAULT 0, inflow numeric NOT NULL DEFAULT 0,
+  "categoryId" text NOT NULL DEFAULT '', "accountId" text NOT NULL DEFAULT '',
+  memo text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'cleared',
+  "reconciledAt" text, "reconcileEventId" text,
+  "createdAt" text NOT NULL DEFAULT '', "updatedAt" text NOT NULL DEFAULT '', "syncedAt" text
+);
+CREATE TABLE IF NOT EXISTS transfers (
+  id text PRIMARY KEY, date text NOT NULL DEFAULT '',
+  amount numeric NOT NULL DEFAULT 0,
+  "fromCategoryId" text NOT NULL DEFAULT '', "toCategoryId" text NOT NULL DEFAULT '',
+  memo text NOT NULL DEFAULT '',
+  "createdAt" text NOT NULL DEFAULT '', "updatedAt" text NOT NULL DEFAULT '', "syncedAt" text
+);
+CREATE TABLE IF NOT EXISTS "netWorthEntries" (
+  id text PRIMARY KEY, date text NOT NULL DEFAULT '',
+  amount numeric NOT NULL DEFAULT 0, category text NOT NULL DEFAULT '',
+  type text NOT NULL DEFAULT 'asset', notes text NOT NULL DEFAULT ''
+);
+
+ALTER TABLE groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE categories DISABLE ROW LEVEL SECURITY;
+ALTER TABLE accounts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE transfers DISABLE ROW LEVEL SECURITY;
+ALTER TABLE "netWorthEntries" DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON groups TO anon;
+GRANT ALL ON categories TO anon;
+GRANT ALL ON accounts TO anon;
+GRANT ALL ON transactions TO anon;
+GRANT ALL ON transfers TO anon;
+GRANT ALL ON "netWorthEntries" TO anon;
+```
+
+</details>
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `pnpm dev` | Vite dev server at `http://localhost:5173` |
+| `pnpm build` | Typecheck + production build |
+| `pnpm preview` | Serve the production build locally |
+| `pnpm test` | Vitest in watch mode |
+| `pnpm test:run` | Vitest once (CI) |
+| `pnpm lint` | ESLint |
+| `pnpm format` | Prettier |
+| `pnpm pwa-assets` | Regenerate PWA icons from `public/icon-source.svg` |
+
+## Project layout
 
 ```
 src/
-  app/              layout shell + router
-  routes/           thin route components
-  features/         feature modules (forms, repos, schemas) - Phase 2+
-  components/       ui/, layout/, shared
-  db/               Dexie schema, instance, hooks
-  lib/              budget-math, format, dates, cn
-  sync/             Phase 4
-  styles/           index.css with Tailwind theme
-tests/              Vitest setup + budget-math.test.ts
-public/             static assets, PWA icon source
+  app/          layout shell, router, providers
+  auth/         login gate + session management
+  routes/       thin page components
+  features/     feature repos + form schemas
+  components/   ui/, layout/, sync/, shared
+  db/           Dexie schema, instance, hooks
+  lib/          supabase client, sync engine, budget-math, utils
+  styles/       index.css (Tailwind v4 theme)
+netlify/
+  functions/    OAuth token exchange/refresh (server-only)
+tests/          Vitest setup + unit tests
 ```
 
-## Phases
+## Sync architecture
 
-- Phase 0: stack and structure (done)
-- Phase 1: scaffold, math, tests, empty-state onboarding (current)
-- Phase 2: full transaction/move-money/accounts screens
-- Phase 3: reports, settings editors, polish, Netlify deploy
-- Phase 4: Google Sheets sync
+Data is stored locally in **IndexedDB (Dexie)** for instant offline access. Every mutation is queued in a persistent **outbox**. On network reconnect or explicit sync, the outbox drains to **Supabase** via upsert. On first login, a full pull from Supabase replaces local state — this is how new devices (iPhone, iPad, Mac) pick up your data.
 
-## Data Model
+```
+iPhone / iPad / Mac
+  └── PWA (Dexie — IndexedDB, offline-first)
+        ↕  outbox drain / full pull
+      Supabase (PostgreSQL)
+        └── hosted, always-on, free tier
+```
 
-See `src/db/schema.ts`. All category goals use a discriminated `goalType` field:
-`none | monthly_funding | target_balance | target_by_date`.
+## Data model
 
-## First Run
+See `src/db/schema.ts`. Core entities: `Group → Category → Transaction`, `Account`, `Transfer`, `NetWorthEntry`. All category goals use a discriminated `goalType` field: `none | monthly_funding | target_balance | target_by_date | weekly | monthly | yearly | custom`.
 
-No seed data. The app redirects to `/onboarding` until the user creates at
-least one group, one category, and one account.
+## First run
 
-## Google Auth + Sheets Sync
+No seed data. The app redirects to `/onboarding` until at least one group, one category, and one account exist.
 
-Google sign-in runs through two Netlify Functions:
+## Deployment
 
-- `/.netlify/functions/google-oauth-exchange` exchanges the auth code for tokens
-- `/.netlify/functions/google-oauth-refresh` refreshes access tokens
-
-All Sheets writes go through a server proxy:
-
-- `/.netlify/functions/sheets-sync` verifies the caller's Google access token
-  with `oauth2/v3/userinfo`, then forwards the write to your Apps Script
-  endpoint. The Apps Script shared secret never leaves the server.
-
-### 1) Google Cloud setup
-
-- Create or use a Google Cloud project
-- Configure `OAuth consent screen` (Testing mode is fine)
-- Create an OAuth `Web application` client
-- Register **authorized redirect URIs** (one full URL per line, no typos, no extra path segments). This app’s route is **`/auth/callback` only** — not `.../api/auth/callback/google` (that pattern is for other frameworks).
-  - `http://localhost:8888/auth/callback` (local `netlify dev`)
-  - `http://localhost:5173/auth/callback` (plain `vite` dev)
-  - `https://<your-netlify-site>.netlify.app/auth/callback` (e.g. `...moneyger-pwa...`)
-  - `https://<your-custom-domain>/auth/callback` if you use a custom domain in front of Netlify
-- Register **authorized JavaScript origins** (scheme + host + port only, no path): e.g. `http://localhost:8888` (local `netlify dev`), `http://localhost:5173` (plain Vite), `https://<site>.netlify.app`, `https://<custom-domain>`
-- Add QA accounts to `OAuth consent screen -> Test users`
-
-### 2) Environment variables
-
-See `.env.example` for the full list and client vs server boundary.
-
-Client-safe (prefix `VITE_`, baked into the browser bundle):
-
-- `VITE_GOOGLE_CLIENT_ID`
-
-Server-only (Netlify function env, never sent to the browser):
-
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `APPS_SCRIPT_URL`
-- `APPS_SCRIPT_SECRET`
-- `GOOGLE_ALLOWED_EMAILS` (optional comma-separated allowlist)
-
-### 3) Local QA
-
-- Follow [Local development](#local-development) (`pnpm dlx netlify dev`, open `http://localhost:8888`)
-- Click `Sign in with Google`
-- After callback, the session is persisted in `localStorage`
-- Sync buttons in `Settings -> Data` call the proxy with the user's bearer token
+Hosted on [Netlify](https://netlify.com) (free). Deploys automatically on push to `main`. Set the four env vars above in Netlify → Site Settings → Environment Variables.
