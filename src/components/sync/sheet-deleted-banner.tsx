@@ -2,27 +2,15 @@ import { useState } from 'react';
 import { Loader2, TriangleAlert } from 'lucide-react';
 import { useSheetStatus } from '@/hooks/use-sheet-status';
 import { fullSync } from '@/lib/sync';
-import { recreateUserSheet } from '@/lib/sheet-resolver';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
-
-const SESSION_KEY = 'moneyger:google-session';
-function readSessionForBanner(): { accessToken: string; sub: string } | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const p = JSON.parse(raw) as { accessToken?: string; sub?: string | null; email?: string | null } | null;
-    if (!p?.accessToken) return null;
-    return { accessToken: p.accessToken, sub: p.sub ?? p.email ?? 'unknown' };
-  } catch { return null; }
-}
 
 export function SheetDeletedBanner() {
   const status = useSheetStatus();
   const [resyncing, setResyncing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (status.state !== 'error' || status.code !== 'sheet_missing') {
+  if (status.state !== 'error') {
     return null;
   }
 
@@ -30,9 +18,6 @@ export function SheetDeletedBanner() {
     setActionError(null);
     setResyncing(true);
     try {
-      const session = readSessionForBanner();
-      if (!session) { setActionError('Not signed in'); return; }
-      await recreateUserSheet(session.accessToken, session.sub);
       const result = await fullSync();
       if (!result.ok) {
         setActionError(result.error ?? 'Re-sync failed');
@@ -62,8 +47,7 @@ export function SheetDeletedBanner() {
           />
           <div className="min-w-0">
             <p className="text-sm font-medium leading-snug">
-              Your Google Sheet was deleted or is inaccessible. Click Re-sync to create a new
-              one and restore all data.
+              Sync error. Click Re-sync to push all local data to the database.
             </p>
             {actionError ? (
               <p className="mt-2 text-xs text-[color:var(--color-danger-700)] dark:text-[color:var(--color-danger-300)]">

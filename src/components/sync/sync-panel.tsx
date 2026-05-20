@@ -86,7 +86,7 @@ export function SyncPanel() {
   async function handleFullReupload() {
     if (
       !window.confirm(
-        'Re-upload every local record to your Google Sheet? This will overwrite matching rows in the sheet with your local data. Use this only for recovery.',
+        'Re-upload every local record to Supabase? This will overwrite matching rows with your local data. Use this only for recovery.',
       )
     ) {
       return;
@@ -117,11 +117,10 @@ export function SyncPanel() {
     <div className="rounded-xl bg-white p-4 shadow-sm dark:bg-ink-800">
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <h2 className="text-sm font-semibold">Google Sheets sync</h2>
+          <h2 className="text-sm font-semibold">Cloud sync</h2>
           <p className="mt-1 text-xs text-ink-500">
-            Changes you make are saved locally first, then pushed to your Google
-            Sheet. Renaming the sheet in Drive disconnects it — log out and back
-            in to start fresh.
+            Changes you make are saved locally first, then pushed to Supabase.
+            All your devices stay in sync automatically when online.
           </p>
         </div>
         <StatusBadge status={status} />

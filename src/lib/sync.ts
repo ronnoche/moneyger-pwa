@@ -1,11 +1,5 @@
 import { db, newId, nowISO } from '@/db/db';
-import { resolveUserSheetId, clearSheetIdMemCache } from '@/lib/sheet-resolver';
-import {
-  deleteRowById,
-  listRows,
-  SheetMissingError,
-  upsertRow,
-} from '@/lib/google-sheets-api';
+import { supabase } from '@/lib/supabase';
 import { setLastSyncedAt, setLastSyncError } from '@/lib/sync-meta';
 import type {
   Account,
@@ -36,28 +30,15 @@ export type SyncEntityType =
 export interface SyncResult {
   ok: boolean;
   error?: string;
-  /** Set when the linked Google Sheet is missing or inaccessible (e.g. deleted). */
   code?: 'sheet_missing';
 }
 
-const SHEET_MISSING_USER_MESSAGE =
-  'Your Moneyger Google Sheet was not found or is inaccessible. Click Re-sync to create a new one and restore all your data.';
-
-export function isSheetMissingSyncError(message: string): boolean {
-  const m = message.toLowerCase();
-  return (
-    m.includes('not found') ||
-    m.includes('requested entity was not found') ||
-    m.includes('invalid spreadsheet id') ||
-    m.includes('no spreadsheet') ||
-    m.includes('spreadsheet not found') ||
-    m.includes('file not found') ||
-    m.includes('permission_denied') ||
-    m.includes('insufficient permission')
-  );
-}
-
+// Kept for backward compat — UI components may reference these; never emitted by Supabase transport.
 export type SyncStatusCode = 'sheet_missing' | 'sheet_renamed';
+
+export function isSheetMissingSyncError(_message: string): boolean {
+  return false;
+}
 
 export type SyncStatus =
   | { state: 'idle' }
@@ -68,24 +49,23 @@ export type SyncStatus =
 const SESSION_STORAGE_KEY = 'moneyger:google-session';
 const listeners = new Set<(status: SyncStatus) => void>();
 
-function readSession(): { accessToken: string; sub: string } | null {
+function readSession(): { sub: string } | null {
   try {
     const raw = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as {
-      accessToken?: string;
       sub?: string | null;
       email?: string | null;
     } | null;
-    if (!parsed?.accessToken) return null;
-    return {
-      accessToken: parsed.accessToken,
-      sub: parsed.sub ?? parsed.email ?? 'unknown',
-    };
+    if (!parsed) return null;
+    const sub = parsed.sub ?? parsed.email ?? null;
+    if (!sub) return null;
+    return { sub };
   } catch {
     return null;
   }
 }
+
 let activeSyncOps = 0;
 let currentStatus: SyncStatus = { state: 'idle' };
 
@@ -121,10 +101,6 @@ export function getCurrentSyncStatus(): SyncStatus {
   return currentStatus;
 }
 
-/**
- * Wire up automatic draining on network reconnect. Idempotent. Call once at app
- * boot.
- */
 let onlineListenerInstalled = false;
 export function installOnlineSyncListener(): void {
   if (onlineListenerInstalled) return;
@@ -145,8 +121,7 @@ export function subscribeSyncStatus(
   };
 }
 
-/** Shapes rows to the Google Sheet column contract (Apps Script HEADERS). */
-function normalizeForSheet(
+function normalizeForSupabase(
   entityType: SyncEntityType,
   raw: Record<string, unknown>,
 ): object {
@@ -317,7 +292,7 @@ function parseNetWorthType(v: unknown): 'asset' | 'debt' {
   return v === 'debt' ? 'debt' : 'asset';
 }
 
-function parseTransactionFromSheet(raw: Record<string, unknown>): Transaction | null {
+function parseTransaction(raw: Record<string, unknown>): Transaction | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   const now = new Date().toISOString();
@@ -345,7 +320,7 @@ function parseTransactionFromSheet(raw: Record<string, unknown>): Transaction | 
   };
 }
 
-function parseTransferFromSheet(raw: Record<string, unknown>): Transfer | null {
+function parseTransfer(raw: Record<string, unknown>): Transfer | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   const now = new Date().toISOString();
@@ -363,7 +338,7 @@ function parseTransferFromSheet(raw: Record<string, unknown>): Transfer | null {
   };
 }
 
-function parseAccountFromSheet(raw: Record<string, unknown>): Account | null {
+function parseAccount(raw: Record<string, unknown>): Account | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   const accountCategory = parseAccountCategory(raw.accountCategory);
@@ -389,7 +364,7 @@ function parseAccountFromSheet(raw: Record<string, unknown>): Account | null {
   };
 }
 
-function parseCategoryFromSheet(raw: Record<string, unknown>): Category | null {
+function parseCategory(raw: Record<string, unknown>): Category | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   return {
@@ -423,7 +398,7 @@ function parseCategoryFromSheet(raw: Record<string, unknown>): Category | null {
   };
 }
 
-function parseGroupFromSheet(raw: Record<string, unknown>): Group | null {
+function parseGroup(raw: Record<string, unknown>): Group | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   return {
@@ -434,9 +409,7 @@ function parseGroupFromSheet(raw: Record<string, unknown>): Group | null {
   };
 }
 
-function parseNetWorthEntryFromSheet(
-  raw: Record<string, unknown>,
-): NetWorthEntry | null {
+function parseNetWorthEntry(raw: Record<string, unknown>): NetWorthEntry | null {
   const id = String(raw.id ?? '').trim();
   if (!id) return null;
   return {
@@ -449,23 +422,20 @@ function parseNetWorthEntryFromSheet(
   };
 }
 
-function parseSheetRow(
-  entityType: SyncEntityType,
-  r: Record<string, unknown>,
-): unknown | null {
+function parseRow(entityType: SyncEntityType, r: Record<string, unknown>): unknown | null {
   switch (entityType) {
     case 'transactions':
-      return parseTransactionFromSheet(r);
+      return parseTransaction(r);
     case 'transfers':
-      return parseTransferFromSheet(r);
+      return parseTransfer(r);
     case 'accounts':
-      return parseAccountFromSheet(r);
+      return parseAccount(r);
     case 'categories':
-      return parseCategoryFromSheet(r);
+      return parseCategory(r);
     case 'groups':
-      return parseGroupFromSheet(r);
+      return parseGroup(r);
     case 'netWorthEntries':
-      return parseNetWorthEntryFromSheet(r);
+      return parseNetWorthEntry(r);
     default: {
       const _e: never = entityType;
       throw new Error(`Unexpected entity: ${String(_e)}`);
@@ -473,175 +443,15 @@ function parseSheetRow(
   }
 }
 
-function parseRowsForEntity(
-  entityType: SyncEntityType,
-  rows: unknown[],
-): unknown[] {
+function parseRows(entityType: SyncEntityType, rows: unknown[]): unknown[] {
   const out: unknown[] = [];
   for (const row of rows) {
     const r = coerceRow(row);
     if (!r) continue;
-    const parsed = parseSheetRow(entityType, r);
+    const parsed = parseRow(entityType, r);
     if (parsed) out.push(parsed);
   }
   return out;
-}
-
-type SheetRequestBody = {
-  operation: SyncOperation | SyncListOperation;
-  entityType: SyncEntityType;
-  payload: object;
-};
-
-type SheetRequestResult = SyncResult & { rows?: unknown[] };
-
-async function performSheetRequest(body: SheetRequestBody): Promise<SheetRequestResult> {
-  const session = readSession();
-  if (!session) {
-    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
-  }
-
-  try {
-    const sheetId = await resolveUserSheetId(session.accessToken, session.sub);
-
-    if (body.operation === 'list') {
-      const rows = await listRows(session.accessToken, sheetId, body.entityType);
-      return { ok: true, rows };
-    }
-
-    if (body.operation === 'delete') {
-      const p = body.payload as Record<string, unknown>;
-      const id = typeof p.id === 'string' ? p.id : '';
-      if (!id) return { ok: false, error: 'Missing id for delete operation' };
-      await deleteRowById(session.accessToken, sheetId, body.entityType, id);
-      return { ok: true };
-    }
-
-    await upsertRow(session.accessToken, sheetId, body.entityType, body.payload);
-    return { ok: true };
-  } catch (err) {
-    if (err instanceof SheetMissingError) {
-      clearSheetIdMemCache();
-      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
-    }
-    const msg = err instanceof Error ? err.message : 'Sync failed';
-    if (isSheetMissingSyncError(msg) || msg.includes('404')) {
-      clearSheetIdMemCache();
-      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
-    }
-    return { ok: false, error: msg };
-  }
-}
-
-async function resolveSheetPayload(
-  operation: SyncOperation,
-  entityType: SyncEntityType,
-  payload: object,
-): Promise<object | null> {
-  const p = payload as Record<string, unknown>;
-  const id = typeof p.id === 'string' ? p.id : null;
-
-  if (operation === 'delete') {
-    if (!id) return null;
-    return { id };
-  }
-
-  switch (entityType) {
-    case 'transactions': {
-      if (operation === 'update' && id) {
-        const row = await db.transactions.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.transactions.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    case 'transfers': {
-      if (operation === 'update' && id) {
-        const row = await db.transfers.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.transfers.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    case 'accounts': {
-      if (operation === 'update' && id) {
-        const row = await db.accounts.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.accounts.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    case 'categories': {
-      if (operation === 'update' && id) {
-        const row = await db.categories.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.categories.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    case 'groups': {
-      if (operation === 'update' && id) {
-        const row = await db.groups.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.groups.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    case 'netWorthEntries': {
-      if (operation === 'update' && id) {
-        const row = await db.netWorthEntries.get(id);
-        if (!row) return null;
-        return normalizeForSheet(entityType, {
-          ...row,
-          ...p,
-        } as Record<string, unknown>);
-      }
-      if (operation === 'create' && id) {
-        const row = await db.netWorthEntries.get(id);
-        if (row) return normalizeForSheet(entityType, row as unknown as Record<string, unknown>);
-      }
-      return normalizeForSheet(entityType, p);
-    }
-    default: {
-      const _exhaustive: never = entityType;
-      return _exhaustive;
-    }
-  }
 }
 
 export async function syncToSheet(
@@ -649,46 +459,46 @@ export async function syncToSheet(
   entityType: SyncEntityType,
   payload: object,
 ): Promise<SyncResult> {
-  const session = readSession();
-  if (!session) {
+  if (!readSession()) {
     return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
   }
 
   onSyncStart();
   try {
-    const sheetPayload = await resolveSheetPayload(operation, entityType, payload);
-    if (!sheetPayload) {
-      const err: SyncResult = {
-        ok: false,
-        error: 'Sync skipped: missing row or id for this operation.',
-      };
-      onSyncFinish(err);
-      return err;
+    let result: SyncResult;
+
+    if (operation === 'delete') {
+      const id = (payload as { id?: string }).id;
+      if (!id) {
+        result = { ok: false, error: 'Missing id for delete operation' };
+      } else {
+        const { error } = await supabase.from(entityType).delete().eq('id', id);
+        result = error ? { ok: false, error: error.message } : { ok: true };
+      }
+    } else {
+      const p = payload as Record<string, unknown>;
+      const id = typeof p.id === 'string' ? p.id : null;
+      let normalized: object = payload;
+      if (id) {
+        const row = await readEntityRow(entityType, id);
+        if (row) normalized = normalizeForSupabase(entityType, row);
+      }
+      const { error } = await supabase
+        .from(entityType)
+        .upsert(normalized, { onConflict: 'id' });
+      result = error ? { ok: false, error: error.message } : { ok: true };
     }
 
-    const req = await performSheetRequest({
-      operation,
-      entityType,
-      payload: sheetPayload,
-    });
-    const { rows: _omit, ...result } = req;
     onSyncFinish(result);
     return result;
   } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Network request failed';
-    const result: SyncResult =
-      isSheetMissingSyncError(msg) || msg.includes('404')
-        ? { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' }
-        : { ok: false, error: msg };
+    const msg = error instanceof Error ? error.message : 'Sync failed';
+    const result: SyncResult = { ok: false, error: msg };
     onSyncFinish(result);
     return result;
   }
 }
 
-/**
- * Enqueue a mutation to the persistent outbox, then kick off a drain attempt
- * (fire-and-forget). Survives reload, network outages, and offline sessions.
- */
 export function syncInBackground(
   operation: SyncOperation,
   entityType: SyncEntityType,
@@ -725,16 +535,6 @@ export async function getPendingSyncCount(): Promise<number> {
 
 let drainInFlight: Promise<SyncResult> | null = null;
 
-/**
- * Drain the outbox FIFO. Each entry is sent to Google Sheets via syncToSheet.
- * On success the entry is deleted; on failure attempts/lastError are updated.
- *
- * - Network failures: stop draining (we'll retry on next online/online event).
- * - sheet_missing: stop draining and surface error so the recovery banner shows.
- * - Missing local row for create/update: drop silently (user deleted before sync).
- *
- * Concurrent calls are coalesced; the second caller awaits the in-flight drain.
- */
 export function drainOutbox(): Promise<SyncResult> {
   if (drainInFlight) return drainInFlight;
   drainInFlight = runDrain().finally(() => {
@@ -744,16 +544,12 @@ export function drainOutbox(): Promise<SyncResult> {
 }
 
 async function runDrain(): Promise<SyncResult> {
-  const session = readSession();
-  if (!session) {
+  if (!readSession()) {
     return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
   }
 
   const entries = await db.outbox.orderBy('createdAt').toArray();
-  if (entries.length === 0) {
-    // Nothing to do; don't churn the status indicator.
-    return { ok: true };
-  }
+  if (entries.length === 0) return { ok: true };
 
   onSyncStart();
   let lastResult: SyncResult = { ok: true };
@@ -764,7 +560,6 @@ async function runDrain(): Promise<SyncResult> {
         await db.outbox.delete(entry.id);
         continue;
       }
-      // Persist failure metadata, then bail. Remaining entries stay queued.
       await db.outbox.update(entry.id, {
         attempts: entry.attempts + 1,
         lastError: result.error ?? 'Unknown sync error',
@@ -780,37 +575,25 @@ async function runDrain(): Promise<SyncResult> {
 }
 
 async function syncOneEntry(entry: OutboxEntry): Promise<SyncResult> {
-  const session = readSession();
-  if (!session) {
-    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
-  }
-
   try {
-    const sheetId = await resolveUserSheetId(session.accessToken, session.sub);
-
     if (entry.operation === 'delete') {
-      await deleteRowById(session.accessToken, sheetId, entry.entityType, entry.entityId);
-      return { ok: true };
+      const { error } = await supabase
+        .from(entry.entityType)
+        .delete()
+        .eq('id', entry.entityId);
+      return error ? { ok: false, error: error.message } : { ok: true };
     }
 
-    // create / update: re-read latest local state. If the row is gone (e.g.
-    // user deleted it before sync), treat as success and drop the entry.
+    // Re-read latest local state; if row is gone (deleted before sync), drop silently.
     const row = await readEntityRow(entry.entityType, entry.entityId);
     if (!row) return { ok: true };
-    const normalized = normalizeForSheet(entry.entityType, row);
-    await upsertRow(session.accessToken, sheetId, entry.entityType, normalized);
-    return { ok: true };
+    const normalized = normalizeForSupabase(entry.entityType, row);
+    const { error } = await supabase
+      .from(entry.entityType)
+      .upsert(normalized, { onConflict: 'id' });
+    return error ? { ok: false, error: error.message } : { ok: true };
   } catch (err) {
-    if (err instanceof SheetMissingError) {
-      clearSheetIdMemCache();
-      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
-    }
-    const msg = err instanceof Error ? err.message : 'Sync failed';
-    if (isSheetMissingSyncError(msg) || msg.includes('404')) {
-      clearSheetIdMemCache();
-      return { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' };
-    }
-    return { ok: false, error: msg };
+    return { ok: false, error: err instanceof Error ? err.message : 'Sync failed' };
   }
 }
 
@@ -839,40 +622,25 @@ async function readEntityRow(
 }
 
 export async function fullSync(): Promise<SyncResult> {
-  const entityData: Record<SyncEntityType, object[]> = {
-    transactions: await db.transactions.toArray(),
-    transfers: await db.transfers.toArray(),
-    accounts: await db.accounts.toArray(),
-    categories: await db.categories.toArray(),
-    groups: await db.groups.toArray(),
-    netWorthEntries: await db.netWorthEntries.toArray(),
-  };
-
-  // Process entity types sequentially (referential integrity order) but fire
-  // all rows within each type in parallel to stay within the 30s function timeout.
-  for (const entityType of [
+  const ENTITY_ORDER = [
     'groups',
     'categories',
     'accounts',
     'transactions',
     'transfers',
     'netWorthEntries',
-  ] as const) {
-    const rows = entityData[entityType];
+  ] as const;
+
+  for (const entityType of ENTITY_ORDER) {
+    const rows = await db[entityType].toArray();
     if (rows.length === 0) continue;
-
-    const results = await Promise.all(
-      rows.map((row) => {
-        const normalized = normalizeForSheet(
-          entityType,
-          row as Record<string, unknown>,
-        );
-        return syncToSheet('create', entityType, normalized);
-      }),
+    const normalized = rows.map((row) =>
+      normalizeForSupabase(entityType, row as unknown as Record<string, unknown>),
     );
-
-    const failed = results.find((r) => !r.ok);
-    if (failed) return failed;
+    const { error } = await supabase
+      .from(entityType)
+      .upsert(normalized, { onConflict: 'id' });
+    if (error) return { ok: false, error: error.message };
   }
   return { ok: true };
 }
@@ -886,10 +654,8 @@ const PULL_ENTITY_ORDER: SyncEntityType[] = [
   'netWorthEntries',
 ];
 
-/** Replace local Dexie data with all rows from the user's Google Sheet tabs. */
 export async function pullFullFromSheet(): Promise<SyncResult> {
-  const session = readSession();
-  if (!session) {
+  if (!readSession()) {
     return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
   }
 
@@ -912,16 +678,13 @@ export async function pullFullFromSheet(): Promise<SyncResult> {
     };
 
     for (const entityType of PULL_ENTITY_ORDER) {
-      const listRes = await performSheetRequest({
-        operation: 'list',
-        entityType,
-        payload: {},
-      });
-      if (!listRes.ok) {
-        onSyncFinish(listRes);
-        return listRes;
+      const { data, error } = await supabase.from(entityType).select('*');
+      if (error) {
+        const result: SyncResult = { ok: false, error: error.message };
+        onSyncFinish(result);
+        return result;
       }
-      const parsed = parseRowsForEntity(entityType, listRes.rows ?? []);
+      const parsed = parseRows(entityType, data ?? []);
       switch (entityType) {
         case 'groups':
           buckets.groups = parsed as Group[];
@@ -967,22 +730,14 @@ export async function pullFullFromSheet(): Promise<SyncResult> {
           db.transactions.clear(),
           db.transfers.clear(),
           db.netWorthEntries.clear(),
-          // Pulling from the sheet replaces local state. Any queued mutations
-          // were against the now-stale local data and are no longer meaningful.
           db.outbox.clear(),
         ]);
         if (buckets.groups.length) await db.groups.bulkPut(buckets.groups);
-        if (buckets.categories.length) {
-          await db.categories.bulkPut(buckets.categories);
-        }
+        if (buckets.categories.length) await db.categories.bulkPut(buckets.categories);
         if (buckets.accounts.length) await db.accounts.bulkPut(buckets.accounts);
-        if (buckets.transactions.length) {
-          await db.transactions.bulkPut(buckets.transactions);
-        }
+        if (buckets.transactions.length) await db.transactions.bulkPut(buckets.transactions);
         if (buckets.transfers.length) await db.transfers.bulkPut(buckets.transfers);
-        if (buckets.netWorthEntries.length) {
-          await db.netWorthEntries.bulkPut(buckets.netWorthEntries);
-        }
+        if (buckets.netWorthEntries.length) await db.netWorthEntries.bulkPut(buckets.netWorthEntries);
       },
     );
 
@@ -991,10 +746,7 @@ export async function pullFullFromSheet(): Promise<SyncResult> {
     return ok;
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Pull failed';
-    const result: SyncResult =
-      isSheetMissingSyncError(msg) || msg.includes('404')
-        ? { ok: false, error: SHEET_MISSING_USER_MESSAGE, code: 'sheet_missing' }
-        : { ok: false, error: msg };
+    const result: SyncResult = { ok: false, error: msg };
     onSyncFinish(result);
     return result;
   }
