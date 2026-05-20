@@ -46,25 +46,7 @@ export type SyncStatus =
   | { state: 'success'; syncedAt: string }
   | { state: 'error'; error: string; code?: SyncStatusCode };
 
-const SESSION_STORAGE_KEY = 'moneyger:google-session';
 const listeners = new Set<(status: SyncStatus) => void>();
-
-function readSession(): { sub: string } | null {
-  try {
-    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as {
-      sub?: string | null;
-      email?: string | null;
-    } | null;
-    if (!parsed) return null;
-    const sub = parsed.sub ?? parsed.email ?? null;
-    if (!sub) return null;
-    return { sub };
-  } catch {
-    return null;
-  }
-}
 
 let activeSyncOps = 0;
 let currentStatus: SyncStatus = { state: 'idle' };
@@ -459,10 +441,6 @@ export async function syncToSheet(
   entityType: SyncEntityType,
   payload: object,
 ): Promise<SyncResult> {
-  if (!readSession()) {
-    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
-  }
-
   onSyncStart();
   try {
     let result: SyncResult;
@@ -544,10 +522,6 @@ export function drainOutbox(): Promise<SyncResult> {
 }
 
 async function runDrain(): Promise<SyncResult> {
-  if (!readSession()) {
-    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
-  }
-
   const entries = await db.outbox.orderBy('createdAt').toArray();
   if (entries.length === 0) return { ok: true };
 
@@ -655,10 +629,6 @@ const PULL_ENTITY_ORDER: SyncEntityType[] = [
 ];
 
 export async function pullFullFromSheet(): Promise<SyncResult> {
-  if (!readSession()) {
-    return { ok: false, error: 'Not signed in. Sign in with Google to sync.' };
-  }
-
   onSyncStart();
   try {
     const buckets: {

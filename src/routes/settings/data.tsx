@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { useAuthSession } from '@/auth/session';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { SyncPanel } from '@/components/sync/sync-panel';
@@ -11,7 +10,6 @@ type Status =
   | { kind: 'error'; message: string };
 
 export default function SettingsData() {
-  const { session, signOut } = useAuthSession();
   const fileInput = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [busy, setBusy] = useState(false);
@@ -107,19 +105,6 @@ export default function SettingsData() {
         </Card>
 
         <SyncPanel />
-
-        <Card
-          title="Google account"
-          body={`Connected account: ${session?.email ?? 'Unknown account'}. Scope: profile, email, spreadsheets, drive.file.`}
-        >
-          <Button
-            variant="secondary"
-            onClick={() => void signOut()}
-            disabled={busy}
-          >
-            Sign out
-          </Button>
-        </Card>
 
         <Card
           title="Reset"

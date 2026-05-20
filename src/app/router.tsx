@@ -1,9 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { RootLayout } from './root';
-import SignInRedirect from '@/routes/sign-in';
-import AuthCallbackPage from '@/routes/auth-callback';
 import HomeRoute from '@/routes/home';
-import DevLogin from '@/routes/dev/login';
 import TransactionsList from '@/routes/transactions/list';
 import TransactionNew from '@/routes/transactions/new';
 import TransactionEdit from '@/routes/transactions/edit';
@@ -13,9 +10,6 @@ import SettingsCurrency from '@/routes/settings/currency';
 import SettingsData from '@/routes/settings/data';
 
 export const router = createBrowserRouter([
-  { path: '/sign-in', element: <SignInRedirect /> },
-  { path: '/auth/callback', element: <AuthCallbackPage /> },
-  { path: '/dev/login', element: <DevLogin /> },
   {
     element: <RootLayout />,
     children: [

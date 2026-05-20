@@ -23,7 +23,7 @@ const InstallPrompt = lazy(() =>
 
 export function RootLayout() {
   const location = useLocation();
-  const { isAuthenticated, isLoading: authLoading } = useAuthSession();
+  const { isAuthenticated, isLoading, isHydrating } = useAuthSession();
   const isEmpty = useIsEmpty();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -35,20 +35,19 @@ export function RootLayout() {
   useAppHotkeys({ onOpenHelp: openHelp, onOpenPalette: openPalette });
 
   const path = location.pathname;
-  if (authLoading) {
-    return <SplashScreen />;
-  }
+
+  // Not logged in — render unauthenticated shell (just the route, no chrome)
   if (!isAuthenticated) {
-    if (path !== '/') {
-      const next = `${path}${location.search}${location.hash}`;
-      return <Navigate to={`/?next=${encodeURIComponent(next)}`} replace />;
-    }
     return (
-      <div className="flex min-h-dvh flex-col bg-[color:var(--color-bg)] text-[color:var(--color-fg)]">
+      <div className="flex min-h-dvh flex-col bg-[#171B4C]">
         <Outlet />
         <Toaster />
       </div>
     );
+  }
+
+  if (isLoading || isHydrating) {
+    return <SplashScreen />;
   }
 
   const onOnboarding = path === '/onboarding';
@@ -117,7 +116,7 @@ export function RootLayout() {
 function SplashScreen() {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[color:var(--color-bg)] text-[color:var(--color-fg-muted)]">
-      <div className="text-sm">Connecting to your Google Sheet…</div>
+      <div className="text-sm">Loading...</div>
     </div>
   );
 }

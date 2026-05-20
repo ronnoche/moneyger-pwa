@@ -15,7 +15,8 @@ Zero-based envelope budgeting, offline-first, installable on iOS.
 
 ## Scripts
 
-- `pnpm dev` — local dev server
+- `pnpm dev` — Vite only (`http://localhost:5173`). **Does not** run Netlify Functions; `/.netlify/functions/*` is unavailable.
+- `pnpm dlx netlify dev` — full local stack: Netlify Dev on **`http://localhost:8888`**, Vite behind the proxy, and `netlify/functions` loaded from the repo root `.env`. Use this for Google sign-in, Sheets sync, and the registry function.
 - `pnpm build` — typecheck + production build
 - `pnpm preview` — serve the production build
 - `pnpm test` — run Vitest in watch mode
@@ -23,6 +24,21 @@ Zero-based envelope budgeting, offline-first, installable on iOS.
 - `pnpm lint` — ESLint
 - `pnpm format` — Prettier
 - `pnpm pwa-assets` — regenerate icons from `public/icon-source.svg`
+
+## Local development
+
+1. **Node:** use the version in `.nvmrc` (22).
+2. **Dependencies:** `pnpm install`
+3. **Environment:** copy `.env.example` to `.env` and fill values (see [Google Auth + Sheets Sync](#google-auth--sheets-sync)). Netlify Dev injects server-only vars from `.env` into functions.
+4. **Start:** from the repo root run:
+
+   ```bash
+   pnpm dlx netlify dev
+   ```
+
+   Open **`http://localhost:8888`**. Vite’s own port (often `5173`) still runs in the background; browse **only** through `8888` so the app origin, redirects, and `/.netlify/functions/*` paths match production.
+
+For UI-only work without OAuth or sync, `pnpm dev` on port `5173` is enough.
 
 ## Project Layout
 
@@ -81,7 +97,7 @@ All Sheets writes go through a server proxy:
   - `http://localhost:5173/auth/callback` (plain `vite` dev)
   - `https://<your-netlify-site>.netlify.app/auth/callback` (e.g. `...moneyger-pwa...`)
   - `https://<your-custom-domain>/auth/callback` if you use a custom domain in front of Netlify
-- Register **authorized JavaScript origins** (scheme + host + port only, no path): e.g. `http://localhost:5173`, `https://<site>.netlify.app`, `https://<custom-domain>`
+- Register **authorized JavaScript origins** (scheme + host + port only, no path): e.g. `http://localhost:8888` (local `netlify dev`), `http://localhost:5173` (plain Vite), `https://<site>.netlify.app`, `https://<custom-domain>`
 - Add QA accounts to `OAuth consent screen -> Test users`
 
 ### 2) Environment variables
@@ -102,9 +118,7 @@ Server-only (Netlify function env, never sent to the browser):
 
 ### 3) Local QA
 
-- Copy `.env.example` to `.env` and fill values
-- Install Netlify CLI once: `pnpm dlx netlify-cli --version`
-- Run `pnpm dlx netlify dev` (serves on `http://localhost:8888` and proxies Vite)
-- Open the site, click `Sign in with Google`
+- Follow [Local development](#local-development) (`pnpm dlx netlify dev`, open `http://localhost:8888`)
+- Click `Sign in with Google`
 - After callback, the session is persisted in `localStorage`
 - Sync buttons in `Settings -> Data` call the proxy with the user's bearer token
