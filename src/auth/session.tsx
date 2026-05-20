@@ -8,7 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { db } from '@/db/db';
+import { supabase } from '@/lib/supabase';
 import {
   drainOutbox,
   installOnlineSyncListener,
@@ -16,18 +18,14 @@ import {
 } from '@/lib/sync';
 import { clearOnboarding, markOnboardingComplete } from '@/lib/onboarding';
 
-// ─── Credentials (client-side gate — personal use only) ──────────────────────
-const VALID_EMAIL = 'ron@noche.com';
-const VALID_PASSWORD = 'P@ngga27!';
-const AUTH_KEY = 'moneyger:authed';
-
 interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   isHydrating: boolean;
   shouldOnboard: boolean;
-  signIn: (email: string, password: string) => boolean;
-  signOut: () => void;
+  userEmail: string | null;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -44,20 +42,72 @@ async function hasAnyLocalData(): Promise<boolean> {
   return counts.some((c) => c > 0);
 }
 
+async function clearLocalData(): Promise<void> {
+  await db.transaction(
+    'rw',
+    [
+      db.groups,
+      db.categories,
+      db.accounts,
+      db.transactions,
+      db.transfers,
+      db.netWorthEntries,
+      db.outbox,
+      db.autoAssignHistory,
+      db.budgetNotes,
+      db.reconcileEvents,
+      db.syncLogs,
+    ],
+    async () => {
+      await Promise.all([
+        db.groups.clear(),
+        db.categories.clear(),
+        db.accounts.clear(),
+        db.transactions.clear(),
+        db.transfers.clear(),
+        db.netWorthEntries.clear(),
+        db.outbox.clear(),
+        db.autoAssignHistory.clear(),
+        db.budgetNotes.clear(),
+        db.reconcileEvents.clear(),
+        db.syncLogs.clear(),
+      ]);
+    },
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem(AUTH_KEY) === 'true',
-  );
-  const [isLoading, setIsLoading] = useState(
-    () => localStorage.getItem(AUTH_KEY) === 'true',
-  );
+  const [session, setSession] = useState<Session | null>(null);
+  const [sessionResolved, setSessionResolved] = useState(false);
   const [isHydrating, setIsHydrating] = useState(false);
   const [shouldOnboard, setShouldOnboard] = useState(false);
-  const bootedRef = useRef(false);
+  const bootedForUserRef = useRef<string | null>(null);
+
+  // Hydrate session on mount and listen for auth changes.
+  useEffect(() => {
+    let active = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
+      setSessionResolved(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setSessionResolved(true);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const userId = session?.user?.id ?? null;
+  const isAuthenticated = !!userId;
 
   useEffect(() => {
-    if (!isAuthenticated || bootedRef.current) return;
-    bootedRef.current = true;
+    if (!userId) return;
+    if (bootedForUserRef.current === userId) return;
+    bootedForUserRef.current = userId;
 
     installOnlineSyncListener();
 
@@ -92,40 +142,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setShouldOnboard(true);
         }
       } finally {
-        if (active) {
-          setIsHydrating(false);
-          setIsLoading(false);
-        }
+        if (active) setIsHydrating(false);
       }
     }
     void boot();
     return () => {
       active = false;
     };
-  }, [isAuthenticated]);
+  }, [userId]);
 
-  const signIn = useCallback((email: string, password: string): boolean => {
-    if (email.trim().toLowerCase() === VALID_EMAIL && password === VALID_PASSWORD) {
-      localStorage.setItem(AUTH_KEY, 'true');
-      setIsLoading(true);
-      setIsAuthenticated(true);
-      return true;
-    }
-    return false;
+  const signInWithGoogle = useCallback(async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   }, []);
 
-  const signOut = useCallback(() => {
-    localStorage.removeItem(AUTH_KEY);
-    bootedRef.current = false;
-    setIsAuthenticated(false);
-    setIsLoading(false);
-    setIsHydrating(false);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    bootedForUserRef.current = null;
     setShouldOnboard(false);
+    setIsHydrating(false);
+    // Wipe local cache so the next signed-in user doesn't see prior data.
+    try {
+      await clearLocalData();
+    } catch (e) {
+      console.error('Failed to clear local data on sign-out:', e);
+    }
+    clearOnboarding();
   }, []);
+
+  const isLoading = !sessionResolved;
 
   const value = useMemo<AuthContextValue>(
-    () => ({ isAuthenticated, isLoading, isHydrating, shouldOnboard, signIn, signOut }),
-    [isAuthenticated, isLoading, isHydrating, shouldOnboard, signIn, signOut],
+    () => ({
+      isAuthenticated,
+      isLoading,
+      isHydrating,
+      shouldOnboard,
+      userEmail: session?.user?.email ?? null,
+      signInWithGoogle,
+      signOut,
+    }),
+    [
+      isAuthenticated,
+      isLoading,
+      isHydrating,
+      shouldOnboard,
+      session?.user?.email,
+      signInWithGoogle,
+      signOut,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

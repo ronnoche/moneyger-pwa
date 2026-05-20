@@ -99,6 +99,13 @@ export const router = createBrowserRouter([
           return { Component: mod.default };
         },
       },
+      {
+        path: 'auth/callback',
+        lazy: async () => {
+          const mod = await import('@/routes/auth-callback');
+          return { Component: mod.default };
+        },
+      },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
