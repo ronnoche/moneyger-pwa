@@ -103,14 +103,22 @@ export function subscribeSyncStatus(
   };
 }
 
+async function getUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 function normalizeForSupabase(
   entityType: SyncEntityType,
   raw: Record<string, unknown>,
+  userId: string,
 ): object {
+  const base = { user_id: userId };
   switch (entityType) {
     case 'transactions': {
       const t = raw as Partial<Transaction>;
       return {
+        ...base,
         id: String(t.id ?? ''),
         date: String(t.date ?? ''),
         outflow: Number(t.outflow ?? 0),
@@ -130,6 +138,7 @@ function normalizeForSupabase(
     case 'transfers': {
       const t = raw as Partial<Transfer>;
       return {
+        ...base,
         id: String(t.id ?? ''),
         date: String(t.date ?? ''),
         amount: Number(t.amount ?? 0),
@@ -144,6 +153,7 @@ function normalizeForSupabase(
     case 'accounts': {
       const a = raw as Partial<Account>;
       return {
+        ...base,
         id: String(a.id ?? ''),
         name: String(a.name ?? ''),
         accountCategory: String(a.accountCategory ?? 'cash'),
@@ -158,6 +168,7 @@ function normalizeForSupabase(
     case 'categories': {
       const c = raw as Partial<Category>;
       return {
+        ...base,
         id: String(c.id ?? ''),
         groupId: String(c.groupId ?? ''),
         name: String(c.name ?? ''),
@@ -178,6 +189,7 @@ function normalizeForSupabase(
     case 'groups': {
       const g = raw as Partial<Group>;
       return {
+        ...base,
         id: String(g.id ?? ''),
         name: String(g.name ?? ''),
         sortOrder: Number(g.sortOrder ?? 0),
@@ -187,6 +199,7 @@ function normalizeForSupabase(
     case 'netWorthEntries': {
       const n = raw as Partial<NetWorthEntry>;
       return {
+        ...base,
         id: String(n.id ?? ''),
         date: String(n.date ?? ''),
         amount: Number(n.amount ?? 0),
@@ -443,6 +456,12 @@ export async function syncToSheet(
 ): Promise<SyncResult> {
   onSyncStart();
   try {
+    const userId = await getUserId();
+    if (!userId) {
+      const result: SyncResult = { ok: false, error: 'Not signed in' };
+      onSyncFinish(result);
+      return result;
+    }
     let result: SyncResult;
 
     if (operation === 'delete') {
@@ -456,10 +475,10 @@ export async function syncToSheet(
     } else {
       const p = payload as Record<string, unknown>;
       const id = typeof p.id === 'string' ? p.id : null;
-      let normalized: object = payload;
+      let normalized: object = { ...payload, user_id: userId };
       if (id) {
         const row = await readEntityRow(entityType, id);
-        if (row) normalized = normalizeForSupabase(entityType, row);
+        if (row) normalized = normalizeForSupabase(entityType, row, userId);
       }
       const { error } = await supabase
         .from(entityType)
@@ -558,10 +577,13 @@ async function syncOneEntry(entry: OutboxEntry): Promise<SyncResult> {
       return error ? { ok: false, error: error.message } : { ok: true };
     }
 
+    const userId = await getUserId();
+    if (!userId) return { ok: false, error: 'Not signed in' };
+
     // Re-read latest local state; if row is gone (deleted before sync), drop silently.
     const row = await readEntityRow(entry.entityType, entry.entityId);
     if (!row) return { ok: true };
-    const normalized = normalizeForSupabase(entry.entityType, row);
+    const normalized = normalizeForSupabase(entry.entityType, row, userId);
     const { error } = await supabase
       .from(entry.entityType)
       .upsert(normalized, { onConflict: 'id' });
@@ -596,6 +618,9 @@ async function readEntityRow(
 }
 
 export async function fullSync(): Promise<SyncResult> {
+  const userId = await getUserId();
+  if (!userId) return { ok: false, error: 'Not signed in' };
+
   const ENTITY_ORDER = [
     'groups',
     'categories',
@@ -609,7 +634,7 @@ export async function fullSync(): Promise<SyncResult> {
     const rows = await db[entityType].toArray();
     if (rows.length === 0) continue;
     const normalized = rows.map((row) =>
-      normalizeForSupabase(entityType, row as unknown as Record<string, unknown>),
+      normalizeForSupabase(entityType, row as unknown as Record<string, unknown>, userId),
     );
     const { error } = await supabase
       .from(entityType)
