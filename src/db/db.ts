@@ -156,7 +156,7 @@ export class MoneygerDB extends Dexie {
       autoAssignHistory: 'id, appliedAt, presetId, scopeMonth',
       budgetNotes: 'id, updatedAt',
       reconcileEvents: 'id, accountId, reconciledAt, revertedAt',
-      // Persistent outbox: pending mutations to push to Google Sheets.
+      // Persistent outbox: pending mutations to push to Supabase.
       // Indexed by createdAt so we drain FIFO; entityType+entityId let us
       // collapse duplicate updates per entity later if we want to.
       outbox: 'id, createdAt, [entityType+entityId], entityType',

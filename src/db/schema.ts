@@ -135,7 +135,7 @@ export interface SyncLog {
 
 /**
  * Persistent outbox / sync queue. One row per pending mutation that still needs
- * to be pushed to Google Sheets. Drained FIFO by the sync engine; survives
+ * to be pushed to Supabase. Drained FIFO by the sync engine; survives
  * page reloads, network outages, and offline sessions.
  */
 export interface OutboxEntry {

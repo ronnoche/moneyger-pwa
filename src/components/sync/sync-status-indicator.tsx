@@ -47,7 +47,7 @@ export function SyncStatusIndicator() {
         type="button"
         onClick={() =>
           toast.error(
-            status.code === 'sheet_missing' ? 'Google Sheet missing' : 'Sync failed',
+            'Sync failed',
             status.error,
           )
         }
